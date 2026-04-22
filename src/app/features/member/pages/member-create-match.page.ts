@@ -1,0 +1,283 @@
+import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { Router, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { MatchResponse } from '../../../shared/models/match.model';
+import { SiteResponse, TerrainResponse } from '../../../shared/models/site-terrain.model';
+import { MatchesApiService } from '../../../core/api/matches-api.service';
+import { MembresApiService } from '../../../core/api/membres-api.service';
+import { ReservationsApiService } from '../../../core/api/reservations-api.service';
+import { SitesApiService } from '../../../core/api/sites-api.service';
+import { TerrainsApiService } from '../../../core/api/terrains-api.service';
+import { MemberSessionService } from '../../../core/auth/member-session.service';
+import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { MembreResponse } from '../../../shared/models/membre.model';
+
+@Component({
+  selector: 'app-member-create-match-page',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatProgressSpinnerModule
+  ],
+  template: `
+    <section class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-semibold text-slate-900">Creer un match</h1>
+          <p class="text-sm text-slate-600">Public ou prive, selon les regles du backend.</p>
+        </div>
+        <a mat-stroked-button routerLink="/member/matches">Retour aux matchs publics</a>
+      </div>
+
+      <mat-card>
+        <mat-card-content>
+          <form [formGroup]="form" class="grid gap-4 pt-4 md:grid-cols-2" (ngSubmit)="submit()">
+            <mat-form-field appearance="outline">
+              <mat-label>Site</mat-label>
+              <mat-select formControlName="siteId" (valueChange)="onSiteChange($event)" [disabled]="isSiteMember()">
+                @for (site of sites(); track site.id) {
+                  <mat-option [value]="site.id">{{ site.nom }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Terrain</mat-label>
+              <mat-select formControlName="terrainId">
+                @for (terrain of terrains(); track terrain.id) {
+                  <mat-option [value]="terrain.id">{{ terrain.nom }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Date</mat-label>
+              <input matInput type="date" formControlName="date" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Heure debut</mat-label>
+              <input matInput type="time" formControlName="heureDebut" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Type de match</mat-label>
+              <mat-select formControlName="typeMatch">
+                <mat-option value="PUBLIC">PUBLIC</mat-option>
+                <mat-option value="PRIVE">PRIVE</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:col-span-2">
+              <p><strong>Rappel:</strong></p>
+              <ul class="ml-4 list-disc space-y-1">
+                <li>GLOBAL: jusqu'a 3 semaines avant</li>
+                <li>SITE: jusqu'a 2 semaines avant sur son site</li>
+                <li>LIBRE: jusqu'a 5 jours avant</li>
+              </ul>
+            </div>
+
+            @if (form.controls.typeMatch.value === 'PRIVE') {
+              <div class="md:col-span-2">
+                <p class="mb-2 text-sm font-medium text-slate-800">Joueurs a inviter maintenant (optionnel)</p>
+                <div class="grid gap-3 md:grid-cols-3">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Matricule joueur 2</mat-label>
+                    <input matInput formControlName="player1" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Matricule joueur 3</mat-label>
+                    <input matInput formControlName="player2" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Matricule joueur 4</mat-label>
+                    <input matInput formControlName="player3" />
+                  </mat-form-field>
+                </div>
+              </div>
+            }
+
+            @if (message()) {
+              <p class="text-sm text-emerald-700 md:col-span-2">{{ message() }}</p>
+            }
+
+            @if (errorMessage()) {
+              <p class="text-sm text-red-600 md:col-span-2">{{ errorMessage() }}</p>
+            }
+
+            <div class="flex items-center gap-3 md:col-span-2">
+              <button mat-flat-button color="primary" type="submit" [disabled]="loading() || form.invalid">
+                Creer le match
+              </button>
+              @if (loading()) {
+                <mat-spinner diameter="24"></mat-spinner>
+              }
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </section>
+  `
+})
+export class MemberCreateMatchPage {
+  private readonly sitesApi = inject(SitesApiService);
+  private readonly terrainsApi = inject(TerrainsApiService);
+  private readonly matchesApi = inject(MatchesApiService);
+  private readonly membresApi = inject(MembresApiService);
+  private readonly reservationsApi = inject(ReservationsApiService);
+  private readonly memberSession = inject(MemberSessionService);
+  private readonly router = inject(Router);
+
+  readonly loading = signal(false);
+  readonly message = signal('');
+  readonly errorMessage = signal('');
+  readonly sites = signal<SiteResponse[]>([]);
+  readonly terrains = signal<TerrainResponse[]>([]);
+  readonly member = computed(() => this.memberSession.member());
+  readonly isSiteMember = computed(() => this.member()?.typeMembre === 'SITE');
+
+  readonly form = new FormGroup({
+    siteId: new FormControl<number | null>(null, { validators: [Validators.required] }),
+    terrainId: new FormControl<number | null>(null, { validators: [Validators.required] }),
+    date: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    heureDebut: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    typeMatch: new FormControl<'PUBLIC' | 'PRIVE'>('PUBLIC', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    player1: new FormControl('', { nonNullable: true }),
+    player2: new FormControl('', { nonNullable: true }),
+    player3: new FormControl('', { nonNullable: true })
+  });
+
+  constructor() {
+    this.loadSites();
+  }
+
+  loadSites(): void {
+    this.sitesApi.getAll().subscribe({
+      next: (sites) => {
+        this.sites.set(sites);
+        const member = this.member();
+        if (member?.typeMembre === 'SITE' && member.siteId) {
+          this.form.controls.siteId.setValue(member.siteId);
+          this.onSiteChange(member.siteId);
+        }
+      },
+      error: (error) => {
+        this.errorMessage.set(extractApiErrorMessage(error, 'Impossible de charger les sites.'));
+      }
+    });
+  }
+
+  onSiteChange(siteId: number): void {
+    this.form.controls.terrainId.setValue(null);
+    this.terrainsApi.getBySite(siteId).subscribe({
+      next: (terrains) => this.terrains.set(terrains),
+      error: (error) => {
+        this.errorMessage.set(extractApiErrorMessage(error, 'Impossible de charger les terrains.'));
+      }
+    });
+  }
+
+  submit(): void {
+    const organiser = this.member();
+    if (!organiser?.id || this.form.invalid || this.loading()) {
+      return;
+    }
+
+    const terrainId = this.form.controls.terrainId.value;
+    const date = this.form.controls.date.getRawValue();
+    const heureDebut = this.form.controls.heureDebut.getRawValue();
+    const typeMatch = this.form.controls.typeMatch.getRawValue();
+
+    if (!terrainId) {
+      return;
+    }
+
+    this.loading.set(true);
+    this.message.set('');
+    this.errorMessage.set('');
+
+    this.matchesApi
+      .create({
+        terrainId,
+        organisateurId: organiser.id,
+        date,
+        heureDebut,
+        typeMatch
+      })
+      .subscribe({
+        next: (createdMatch) => this.handleInvites(createdMatch, organiser),
+        error: (error) => {
+          this.loading.set(false);
+          this.errorMessage.set(extractApiErrorMessage(error, 'Creation du match impossible.'));
+        }
+      });
+  }
+
+  private handleInvites(createdMatch: MatchResponse, organiser: MembreResponse): void {
+    const invitees = [
+      this.form.controls.player1.getRawValue(),
+      this.form.controls.player2.getRawValue(),
+      this.form.controls.player3.getRawValue()
+    ]
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (this.form.controls.typeMatch.getRawValue() !== 'PRIVE' || !invitees.length) {
+      this.loading.set(false);
+      this.message.set('Match cree avec succes.');
+      this.router.navigateByUrl('/member/reservations');
+      return;
+    }
+
+    forkJoin(invitees.map((matricule) => this.membresApi.getByMatricule(matricule))).subscribe({
+      next: (members) => this.createReservationsForInvites(createdMatch.id, organiser.id, members),
+      error: (error) => {
+        this.loading.set(false);
+        this.message.set('Match cree, mais au moins un joueur invite est introuvable.');
+        this.errorMessage.set(extractApiErrorMessage(error, 'Impossible d ajouter tous les joueurs.'));
+      }
+    });
+  }
+
+  private createReservationsForInvites(matchId: number, organiserId: number, members: MembreResponse[]): void {
+    forkJoin(
+      members.map((member) =>
+        this.reservationsApi.create({
+          matchId,
+          membreId: member.id,
+          requesterId: organiserId
+        })
+      )
+    ).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.message.set('Match prive cree avec les joueurs invites.');
+        this.router.navigateByUrl('/member/reservations');
+      },
+      error: (error) => {
+        this.loading.set(false);
+        this.message.set('Match cree, mais certains joueurs n ont pas pu etre ajoutes.');
+        this.errorMessage.set(extractApiErrorMessage(error, 'Impossible d ajouter tous les joueurs.'));
+      }
+    });
+  }
+}
+
