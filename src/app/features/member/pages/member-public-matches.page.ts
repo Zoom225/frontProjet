@@ -102,6 +102,13 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                 @if (isOrganizer(match)) {
                   <span class="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">Mon match</span>
                 }
+                @if (!isOrganizer(match) && match.nbJoueursActuels >= 4) {
+                  <span class="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">Complet</span>
+                } @else if (!isOrganizer(match) && !canJoin(match)) {
+                  <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Non rejoignable</span>
+                } @else if (!isOrganizer(match)) {
+                  <span class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Disponible</span>
+                }
               </mat-card-title>
               <mat-card-subtitle>
                 {{ match.date }} · {{ match.heureDebut }} - {{ match.heureFin }}
@@ -120,7 +127,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                 color="primary"
                 type="button"
                 (click)="joinMatch(match)"
-                [disabled]="joiningMatchId() === match.id || isOrganizer(match)"
+                [disabled]="joiningMatchId() === match.id || !canJoin(match)"
               >
                 {{ joiningMatchId() === match.id ? 'Reservation...' : 'Rejoindre' }}
               </button>
@@ -255,6 +262,11 @@ export class MemberPublicMatchesPage {
       return;
     }
 
+    if (!this.canJoin(match)) {
+      this.errorMessage.set('Ce match ne peut pas etre rejoint (complet, annule ou non autorise).');
+      return;
+    }
+
     this.joiningMatchId.set(match.id);
     this.message.set('');
     this.errorMessage.set('');
@@ -279,6 +291,14 @@ export class MemberPublicMatchesPage {
 
   isOrganizer(match: MatchResponse): boolean {
     return match.organisateurId === this.memberSession.memberId();
+  }
+
+  canJoin(match: MatchResponse): boolean {
+    if (this.isOrganizer(match)) {
+      return false;
+    }
+
+    return match.statut === 'PLANIFIE' && match.nbJoueursActuels < 4;
   }
 
   canModify(match: MatchResponse): boolean {

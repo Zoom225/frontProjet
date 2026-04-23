@@ -62,48 +62,56 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
       <mat-card class="card-soft panel-gradient">
         <mat-card-header>
-          <mat-card-title>Gestion des joueurs (mes matchs)</mat-card-title>
-          <mat-card-subtitle>Ajoute ou retire des joueurs uniquement sur tes matchs PRIVE.</mat-card-subtitle>
+          <mat-card-title>🎾 Mes matchs organisés</mat-card-title>
+          <mat-card-subtitle>Modifier, supprimer ou gérer les joueurs de vos matchs.</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content class="grid gap-4 md:grid-cols-3">
           <mat-form-field appearance="outline">
-            <mat-label>Match prive organise</mat-label>
+            <mat-label>Sélectionner un match organisé</mat-label>
             <mat-select [value]="managedMatchId()" (valueChange)="onManagedMatchChange($event)">
-              <mat-option [value]="null">Choisir un match PRIVE</mat-option>
+              <mat-option [value]="null">-- Choisir un match --</mat-option>
               @for (match of managedMatches(); track match.id) {
                 <mat-option [value]="match.id">
-                  #{{ match.id }} - {{ match.date }} {{ match.heureDebut }} ({{ match.typeMatch }})
+                  #{{ match.id }} – {{ match.date }} {{ match.heureDebut }} [{{ match.typeMatch }}]
                 </mat-option>
               }
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Matricule a ajouter</mat-label>
-            <input matInput [formControl]="inviteMatricule" placeholder="Ex: G1002" />
-          </mat-form-field>
+          @if (selectedManagedMatch()?.typeMatch === 'PRIVE') {
+            <mat-form-field appearance="outline">
+              <mat-label>Matricule joueur à ajouter</mat-label>
+              <input matInput [formControl]="inviteMatricule" placeholder="Ex: G1002" />
+            </mat-form-field>
 
-          <div class="flex items-end gap-2">
-            <button
-              mat-flat-button
-              color="primary"
-              type="button"
-              (click)="addPlayer()"
-              [disabled]="!selectedManagedMatch() || inviteMatricule.invalid || actionId() !== null"
-            >
-              Ajouter joueur
-            </button>
-          </div>
+            <div class="flex items-end gap-2">
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                (click)="addPlayer()"
+                [disabled]="!selectedManagedMatch() || inviteMatricule.invalid || actionId() !== null"
+              >
+                Ajouter joueur
+              </button>
+            </div>
+          }
 
           @if (!managedMatches().length) {
             <div class="md:col-span-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              Aucun match PRIVE organise pour l'instant. Utilise les boutons ci-dessus pour creer un match PUBLIC ou PRIVE.
+              ✅ Aucun match organisé pour l'instant. Créez un match PUBLIC ou PRIVÉ via les boutons ci-dessus.
             </div>
           }
 
           @if (selectedManagedMatch()) {
             <div class="md:col-span-3 rounded-lg border border-slate-200 bg-white p-4">
-              <p class="mb-3 text-sm font-semibold text-slate-800">Modifier ou supprimer le match #{{ selectedManagedMatch()!.id }}</p>
+              <p class="mb-3 text-sm font-semibold text-slate-800">
+                ✏️ Modifier le match #{{ selectedManagedMatch()!.id }}
+                <span class="ml-2 rounded-full px-2 py-0.5 text-xs font-bold"
+                      [class]="selectedManagedMatch()!.typeMatch === 'PRIVE' ? 'bg-violet-100 text-violet-800' : 'bg-emerald-100 text-emerald-800'">
+                  {{ selectedManagedMatch()!.typeMatch }}
+                </span>
+              </p>
               <form [formGroup]="managedMatchForm" class="grid gap-3 md:grid-cols-4" (ngSubmit)="updateManagedMatch()">
                 <mat-form-field appearance="outline">
                   <mat-label>Date</mat-label>
@@ -111,38 +119,52 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
-                  <mat-label>Heure debut</mat-label>
+                  <mat-label>Heure début</mat-label>
                   <input matInput type="time" formControlName="heureDebut" />
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
                   <mat-label>Type</mat-label>
                   <mat-select formControlName="typeMatch">
-                    <mat-option value="PRIVE">PRIVE</mat-option>
+                    <mat-option value="PRIVE">PRIVÉ</mat-option>
                     <mat-option value="PUBLIC">PUBLIC</mat-option>
                   </mat-select>
                 </mat-form-field>
 
                 <div class="flex items-end gap-2">
                   <button mat-flat-button color="primary" type="submit" [disabled]="managedMatchForm.invalid || actionId() !== null">
-                    Enregistrer
+                    💾 Enregistrer
                   </button>
-                  <button mat-stroked-button color="warn" type="button" (click)="deleteManagedMatch()" [disabled]="actionId() !== null">
-                    Supprimer
+                  <button mat-stroked-button color="warn" type="button" (click)="requestDeleteManagedMatch()" [disabled]="actionId() !== null">
+                    🗑️ Supprimer
                   </button>
                 </div>
               </form>
+
+              @if (pendingDeleteMatchId() === selectedManagedMatch()!.id) {
+                <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+                  <p class="font-semibold">Confirmation requise</p>
+                  <p class="mt-1">Ce match sera annule et masque de votre historique.</p>
+                  <div class="mt-3 flex gap-2">
+                    <button mat-flat-button color="warn" type="button" (click)="deleteManagedMatch()" [disabled]="actionId() !== null">Confirmer la suppression</button>
+                    <button mat-stroked-button type="button" (click)="cancelDeleteManagedMatch()" [disabled]="actionId() !== null">Annuler</button>
+                  </div>
+                </div>
+              }
             </div>
           }
 
           <div class="md:col-span-3">
             @if (managedReservations().length) {
+              <p class="mb-2 text-sm font-semibold text-slate-700">Joueurs inscrits :</p>
               <div class="grid gap-2 md:grid-cols-2">
                 @for (res of managedReservations(); track res.id) {
-                  <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <p class="font-medium text-slate-800">{{ res.membreNom }}</p>
-                    <p class="text-sm text-slate-600">Reservation: {{ res.statut }} · Paiement: {{ res.paiement?.statut || 'N/A' }}</p>
-                    <div class="mt-2">
+                  <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 flex items-center justify-between">
+                    <div>
+                      <p class="font-medium text-slate-800">{{ res.membreNom }}</p>
+                      <p class="text-xs text-slate-500">Réservation: {{ res.statut }} · Paiement: {{ res.paiement?.statut || 'N/A' }}</p>
+                    </div>
+                    @if (selectedManagedMatch()?.typeMatch === 'PRIVE') {
                       <button
                         mat-stroked-button
                         color="warn"
@@ -150,14 +172,14 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                         (click)="removePlayer(res)"
                         [disabled]="actionId() === res.id || res.statut === 'ANNULEE' || res.membreId === memberId()"
                       >
-                        Retirer ce joueur
+                        Retirer
                       </button>
-                    </div>
+                    }
                   </div>
                 }
               </div>
-            } @else {
-              <p class="text-sm text-slate-600">Aucun joueur gere pour le match selectionne.</p>
+            } @else if (selectedManagedMatch()) {
+              <p class="text-sm text-slate-500 italic">Aucun joueur inscrit sur ce match.</p>
             }
           </div>
         </mat-card-content>
@@ -167,17 +189,23 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
         @for (reservation of reservations(); track reservation.id) {
           <mat-card class="card-soft">
             <mat-card-header>
-              <mat-card-title>Reservation #{{ reservation.id }}</mat-card-title>
+              <mat-card-title>📋 Réservation #{{ reservation.id }}</mat-card-title>
               <mat-card-subtitle>{{ reservation.matchDateTime }}</mat-card-subtitle>
             </mat-card-header>
             <mat-card-content class="space-y-2">
-              <p><strong>Joueur:</strong> {{ reservation.membreNom }}</p>
-              <p><strong>Match:</strong> #{{ reservation.matchId }}</p>
+              <p><strong>Joueur :</strong> {{ reservation.membreNom }}</p>
+              <p><strong>Match :</strong> #{{ reservation.matchId }}</p>
               <mat-chip-set>
-                <mat-chip [highlighted]="true">Reservation: {{ reservation.statut }}</mat-chip>
-                <mat-chip [highlighted]="true">Paiement: {{ reservation.paiement?.statut || 'N/A' }}</mat-chip>
+                <mat-chip [highlighted]="true"
+                          [color]="reservation.statut === 'CONFIRMEE' ? 'primary' : reservation.statut === 'ANNULEE' ? 'warn' : 'accent'">
+                  Réservation : {{ reservation.statut }}
+                </mat-chip>
+                <mat-chip [highlighted]="true"
+                          [color]="reservation.paiement?.statut === 'PAYE' ? 'primary' : reservation.paiement?.statut === 'REMBOURSE' ? 'accent' : 'warn'">
+                  Paiement : {{ reservation.paiement?.statut || 'N/A' }}
+                </mat-chip>
               </mat-chip-set>
-              <p><strong>Montant:</strong> {{ reservation.paiement?.montant ?? 0 }} EUR</p>
+              <p><strong>Montant :</strong> {{ reservation.paiement?.montant ?? 0 }} €</p>
             </mat-card-content>
             <mat-card-actions>
               <button
@@ -187,22 +215,26 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                 (click)="pay(reservation)"
                 [disabled]="reservation.paiement?.statut !== 'EN_ATTENTE' || actionId() === reservation.id"
               >
-                Payer
+                💳 Payer
               </button>
               <button
                 mat-stroked-button
+                color="warn"
                 type="button"
                 (click)="cancel(reservation)"
                 [disabled]="reservation.statut === 'ANNULEE' || actionId() === reservation.id"
               >
-                Annuler
+                ❌ Annuler
               </button>
             </mat-card-actions>
           </mat-card>
         } @empty {
           @if (!loading()) {
             <mat-card>
-              <mat-card-content class="py-6 text-slate-600">Aucune reservation trouvee.</mat-card-content>
+              <mat-card-content class="py-6 text-slate-600">
+                <p>Aucune réservation trouvée.</p>
+                <p class="mt-2 text-sm text-slate-400">Créez un match ou rejoignez un match public pour voir vos réservations ici.</p>
+              </mat-card-content>
             </mat-card>
           }
         }
@@ -223,7 +255,7 @@ export class MemberReservationsPage {
   readonly errorMessage = signal('');
   readonly reservations = signal<ReservationResponse[]>([]);
   readonly organisedMatches = signal<MatchResponse[]>([]);
-  readonly managedMatches = computed(() => this.organisedMatches().filter((match) => match.typeMatch === 'PRIVE'));
+  readonly managedMatches = computed(() => this.organisedMatches());
   readonly selectedManagedMatch = computed(() => {
     const matchId = this.managedMatchId();
     if (!matchId) {
@@ -233,6 +265,7 @@ export class MemberReservationsPage {
   });
   readonly managedReservations = signal<ReservationResponse[]>([]);
   readonly managedMatchId = signal<number | null>(null);
+  readonly pendingDeleteMatchId = signal<number | null>(null);
   readonly managedMatchForm = new FormGroup({
     date: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     heureDebut: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -279,7 +312,7 @@ export class MemberReservationsPage {
 
     this.matchesApi.getByOrganisateur(memberId).subscribe({
       next: (matches) => {
-        this.organisedMatches.set(matches);
+        this.organisedMatches.set(matches.filter((match) => match.statut !== 'ANNULE'));
         if (this.managedMatchId() && !this.selectedManagedMatch()) {
           this.managedMatchId.set(null);
           this.managedReservations.set([]);
@@ -297,18 +330,13 @@ export class MemberReservationsPage {
   onManagedMatchChange(matchId: number | null): void {
     this.managedMatchId.set(matchId);
     this.managedReservations.set([]);
+    this.pendingDeleteMatchId.set(null);
 
     if (!matchId) {
       this.managedMatchForm.reset({ date: '', heureDebut: '', typeMatch: 'PRIVE' });
       return;
     }
 
-    if (!this.selectedManagedMatch()) {
-      this.errorMessage.set('Selection invalide : la gestion des joueurs est reservee aux matchs PRIVE.');
-      this.managedMatchId.set(null);
-      this.managedMatchForm.reset({ date: '', heureDebut: '', typeMatch: 'PRIVE' });
-      return;
-    }
 
     this.syncManagedMatchForm();
 
@@ -361,6 +389,21 @@ export class MemberReservationsPage {
       });
   }
 
+  requestDeleteManagedMatch(): void {
+    const selectedMatch = this.selectedManagedMatch();
+    if (!selectedMatch) {
+      return;
+    }
+
+    this.pendingDeleteMatchId.set(selectedMatch.id);
+    this.message.set('');
+    this.errorMessage.set('');
+  }
+
+  cancelDeleteManagedMatch(): void {
+    this.pendingDeleteMatchId.set(null);
+  }
+
   deleteManagedMatch(): void {
     const selectedMatch = this.selectedManagedMatch();
     const requesterId = this.memberId();
@@ -368,7 +411,7 @@ export class MemberReservationsPage {
       return;
     }
 
-    if (!confirm(`Confirmer la suppression (annulation) du match #${selectedMatch.id} ?`)) {
+    if (this.pendingDeleteMatchId() !== selectedMatch.id) {
       return;
     }
 
@@ -379,6 +422,7 @@ export class MemberReservationsPage {
     this.matchesApi.cancel(selectedMatch.id, requesterId).subscribe({
       next: () => {
         this.actionId.set(null);
+        this.pendingDeleteMatchId.set(null);
         this.message.set('Match annule avec succes.');
         this.managedMatchId.set(null);
         this.managedReservations.set([]);
@@ -388,6 +432,7 @@ export class MemberReservationsPage {
       },
       error: (error) => {
         this.actionId.set(null);
+        this.pendingDeleteMatchId.set(null);
         this.errorMessage.set(extractApiErrorMessage(error, 'Suppression du match impossible.'));
       }
     });

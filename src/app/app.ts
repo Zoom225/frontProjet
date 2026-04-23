@@ -25,7 +25,14 @@ import { MemberSessionService } from './core/auth/member-session.service';
           @if (memberSession.isAuthenticated()) {
             <a mat-button routerLink="/member/profile" routerLinkActive="active-link">Profil</a>
             <a mat-button routerLink="/member/matches" routerLinkActive="active-link">Matchs</a>
-            <a mat-flat-button color="accent" routerLink="/member/matches/new" routerLinkActive="active-link">Creer match</a>
+            <a mat-flat-button color="accent" routerLink="/member/matches/new" [queryParams]="{type:'PUBLIC'}" routerLinkActive="active-link"
+               style="background: linear-gradient(135deg,#15803d,#16a34a); color:#fff; font-weight:700; border-radius:8px; margin:0 2px;">
+              🎾 Match PUBLIC
+            </a>
+            <a mat-flat-button routerLink="/member/matches/new" [queryParams]="{type:'PRIVE'}" routerLinkActive="active-link"
+               style="background: linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; font-weight:700; border-radius:8px; margin:0 2px;">
+              🔒 Match PRIVÉ
+            </a>
             <a mat-button routerLink="/member/reservations" routerLinkActive="active-link">Reservations</a>
             <a mat-button routerLink="/member/payments" routerLinkActive="active-link">Paiements</a>
             <button mat-stroked-button type="button" (click)="logoutMember()">Logout membre</button>
@@ -64,7 +71,10 @@ import { MemberSessionService } from './core/auth/member-session.service';
             @if (memberSession.isAuthenticated()) {
               <a mat-button routerLink="/member/profile" (click)="closeMobileMenu()">Profil membre</a>
               <a mat-button routerLink="/member/matches" (click)="closeMobileMenu()">Matchs</a>
-              <a mat-button routerLink="/member/matches/new" (click)="closeMobileMenu()">Creer match</a>
+              <a mat-button routerLink="/member/matches/new" [queryParams]="{type:'PUBLIC'}" (click)="closeMobileMenu()"
+                 style="color:#15803d; font-weight:700;">🎾 Créer match PUBLIC</a>
+              <a mat-button routerLink="/member/matches/new" [queryParams]="{type:'PRIVE'}" (click)="closeMobileMenu()"
+                 style="color:#7c3aed; font-weight:700;">🔒 Créer match PRIVÉ</a>
               <a mat-button routerLink="/member/reservations" (click)="closeMobileMenu()">Reservations</a>
               <a mat-button routerLink="/member/payments" (click)="closeMobileMenu()">Paiements</a>
             }

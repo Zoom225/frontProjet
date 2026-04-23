@@ -319,17 +319,25 @@ export class MemberCreateMatchPage {
     this.message.set('');
     this.errorMessage.set('');
 
+    const payload = {
+      terrainId,
+      organisateurId: organiser.id,
+      date,
+      heureDebut,
+      typeMatch
+    };
+
+    console.log('Creating match with payload:', payload);
+
     this.matchesApi
-      .create({
-        terrainId,
-        organisateurId: organiser.id,
-        date,
-        heureDebut,
-        typeMatch
-      })
+      .create(payload)
       .subscribe({
-        next: (createdMatch) => this.handleInvites(createdMatch, organiser),
+        next: (createdMatch) => {
+          console.log('Match created successfully:', createdMatch);
+          this.handleInvites(createdMatch, organiser);
+        },
         error: (error) => {
+          console.error('Match creation failed:', error);
           this.loading.set(false);
           this.errorMessage.set(this.toFriendlyCreationErrorMessage(error));
         }
@@ -349,16 +357,42 @@ export class MemberCreateMatchPage {
   }
 
   private toFriendlyCreationErrorMessage(error: unknown): string {
-    const apiMessage = extractApiErrorMessage(error, 'Creation du match impossible.');
+    console.log('=== ERROR IN MATCH CREATION ===');
+    const apiMessage = extractApiErrorMessage(error, 'Création du match impossible.');
 
-    if (apiMessage.includes('must book at least')) {
-      return this.bookingDelayErrorMessage();
+    console.log('Extracted API message:', apiMessage);
+
+    // Mapping des messages connus
+    const errorMappings: Record<string, string> = {
+      'outstanding balance': '❌ Vous avez un solde impayé. Réglez vos dettes avant de créer un match.',
+      'active penalty': '❌ Vous avez une pénalité active. Attendez avant de créer un match.',
+      'must book at least': this.bookingDelayErrorMessage(),
+      'slot is already booked': '❌ Ce créneau est déjà réservé. Choisissez un autre horaire.',
+      'closed on': '❌ Le site est fermé à cette date.',
+      'outside site opening hours': '❌ Cet horaire est en dehors des heures d\'ouverture du site.',
+    };
+
+    // Chercher un match dans le message
+    for (const [key, message] of Object.entries(errorMappings)) {
+      if (apiMessage.toLowerCase().includes(key)) {
+        console.log('Matched error key:', key, '→', message);
+        return message;
+      }
     }
 
-    return apiMessage;
+    // Si aucun match, afficher le message extrait
+    const friendlyMessage = `❌ Erreur : ${apiMessage}`;
+    console.log('No match found, returning:', friendlyMessage);
+    console.log('================================');
+
+    return friendlyMessage;
   }
 
   private handleInvites(createdMatch: MatchResponse, organiser: MembreResponse): void {
+    console.log('Starting handleInvites for match:', createdMatch.id);
+
+    // Directement traiter les invites sans auto-inscrire l'organisateur
+    // (L'organisateur devra rejoindre via le bouton "Payer" sur sa réservation)
     const invitees = [
       this.form.controls.player1.getRawValue(),
       this.form.controls.player2.getRawValue(),
@@ -368,23 +402,29 @@ export class MemberCreateMatchPage {
       .filter(Boolean);
 
     if (this.form.controls.typeMatch.getRawValue() !== 'PRIVE' || !invitees.length) {
+      console.log('No invitees or PUBLIC match, completing creation');
       this.loading.set(false);
-      this.message.set('Match cree avec succes.');
-      this.router.navigateByUrl('/member/reservations');
+      this.message.set('Match créé avec succès. Vous pouvez rejoindre votre match dans vos réservations.');
+      setTimeout(() => this.router.navigateByUrl('/member/reservations'), 1000);
       return;
     }
 
+    console.log('Creating invitations for:', invitees);
     forkJoin(invitees.map((matricule) => this.membresApi.getByMatricule(matricule))).subscribe({
       next: (members) => this.createReservationsForInvites(createdMatch.id, organiser.id, members),
       error: (error) => {
+        console.error('Error finding invited members:', error);
         this.loading.set(false);
-        this.message.set('Match cree, mais au moins un joueur invite est introuvable.');
-        this.errorMessage.set(extractApiErrorMessage(error, 'Impossible d ajouter tous les joueurs.'));
+        this.message.set('Match créé, mais au moins un joueur invité est introuvable.');
+        this.errorMessage.set(extractApiErrorMessage(error, 'Impossible d\'ajouter tous les joueurs.'));
+        setTimeout(() => this.router.navigateByUrl('/member/reservations'), 2000);
       }
     });
   }
 
   private createReservationsForInvites(matchId: number, organiserId: number, members: MembreResponse[]): void {
+    console.log('Creating reservations for', members.length, 'invited members');
+
     forkJoin(
       members.map((member) =>
         this.reservationsApi.create({
@@ -395,14 +435,17 @@ export class MemberCreateMatchPage {
       )
     ).subscribe({
       next: () => {
+        console.log('All invitations sent successfully');
         this.loading.set(false);
-        this.message.set('Match prive cree avec les joueurs invites.');
-        this.router.navigateByUrl('/member/reservations');
+        this.message.set('Match privé créé avec les joueurs invités. Ils doivent confirmer leur participation.');
+        setTimeout(() => this.router.navigateByUrl('/member/reservations'), 1000);
       },
       error: (error) => {
+        console.error('Error creating reservations:', error);
         this.loading.set(false);
-        this.message.set('Match cree, mais certains joueurs n ont pas pu etre ajoutes.');
-        this.errorMessage.set(extractApiErrorMessage(error, 'Impossible d ajouter tous les joueurs.'));
+        this.message.set('Match créé, mais certains joueurs n\'ont pas pu être ajoutés.');
+        this.errorMessage.set(extractApiErrorMessage(error, 'Impossible d\'ajouter tous les joueurs.'));
+        setTimeout(() => this.router.navigateByUrl('/member/reservations'), 2000);
       }
     });
   }
