@@ -24,7 +24,7 @@ import { AuthService } from '../../../core/auth/auth.service';
   ],
   template: `
     <section class="mx-auto flex min-h-[calc(100vh-64px)] w-full max-w-md items-center px-4 py-8">
-      <mat-card class="w-full">
+      <mat-card class="card-soft w-full">
         <mat-card-header>
           <mat-card-title>Connexion administrateur</mat-card-title>
           <mat-card-subtitle>Acces reserve aux admins GLOBAL/SITE</mat-card-subtitle>
@@ -43,7 +43,7 @@ import { AuthService } from '../../../core/auth/auth.service';
             </mat-form-field>
 
             @if (errorMessage()) {
-              <p class="text-sm text-red-600">{{ errorMessage() }}</p>
+              <p class="status-error">{{ errorMessage() }}</p>
             }
 
             <div class="mt-2 flex items-center gap-2">

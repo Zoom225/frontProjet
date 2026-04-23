@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,6 +22,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     RouterLink,
     MatCardModule,
     MatButtonModule,
@@ -33,7 +35,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     <section class="page-shell">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-semibold text-slate-900">Matchs publics</h1>
+          <h1 class="title-gradient text-2xl font-semibold">Matchs publics</h1>
           <p class="text-sm text-slate-600">Rejoins un match public disponible. Premier paye = premier servi.</p>
         </div>
         <div class="flex gap-2">
@@ -80,11 +82,27 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
         <p class="status-error">{{ errorMessage() }}</p>
       }
 
+      <a routerLink="/member/matches/new" class="card-soft block rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 to-indigo-50 p-5 no-underline transition hover:-translate-y-0.5 hover:shadow-md">
+        <p class="text-sm font-medium uppercase tracking-wide text-sky-700">Tu ne trouves pas de match ?</p>
+        <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-xl font-semibold text-slate-900">Creer ton propre match</p>
+            <p class="text-sm text-slate-600">En public ou en prive, avec choix du site et du terrain.</p>
+          </div>
+          <span class="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white">Creer maintenant</span>
+        </div>
+      </a>
+
       <div class="grid gap-4 lg:grid-cols-2">
         @for (match of filteredMatches(); track match.id) {
           <mat-card class="card-soft">
             <mat-card-header>
-              <mat-card-title>{{ match.terrainNom }} - {{ match.siteNom }}</mat-card-title>
+              <mat-card-title>
+                {{ match.terrainNom }} - {{ match.siteNom }}
+                @if (isOrganizer(match)) {
+                  <span class="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">Mon match</span>
+                }
+              </mat-card-title>
               <mat-card-subtitle>
                 {{ match.date }} · {{ match.heureDebut }} - {{ match.heureFin }}
               </mat-card-subtitle>
@@ -102,11 +120,55 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                 color="primary"
                 type="button"
                 (click)="joinMatch(match)"
-                [disabled]="joiningMatchId() === match.id"
+                [disabled]="joiningMatchId() === match.id || isOrganizer(match)"
               >
                 {{ joiningMatchId() === match.id ? 'Reservation...' : 'Rejoindre' }}
               </button>
+
+              @if (isOrganizer(match)) {
+                <button mat-stroked-button type="button" (click)="startEdit(match)" [disabled]="!canModify(match) || actionMatchId() === match.id">
+                  Modifier
+                </button>
+                <button mat-stroked-button color="warn" type="button" (click)="cancelOwnMatch(match)" [disabled]="actionMatchId() === match.id">
+                  Supprimer
+                </button>
+              }
             </mat-card-actions>
+
+            @if (isOrganizer(match) && !canModify(match)) {
+              <p class="px-4 pb-3 text-xs text-amber-700">Modification indisponible : un match ne peut plus etre modifie a moins de 24h du debut.</p>
+            }
+
+            @if (editingMatchId() === match.id) {
+              <mat-card-content class="grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-4">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date</mat-label>
+                  <input matInput type="date" [formControl]="editForm.controls.date" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Heure debut</mat-label>
+                  <input matInput type="time" [formControl]="editForm.controls.heureDebut" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Type</mat-label>
+                  <mat-select [formControl]="editForm.controls.typeMatch">
+                    <mat-option value="PUBLIC">PUBLIC</mat-option>
+                    <mat-option value="PRIVE">PRIVE</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="flex items-end gap-2">
+                  <button mat-flat-button color="primary" type="button" (click)="saveEdit(match)" [disabled]="editForm.invalid || actionMatchId() === match.id">
+                    Enregistrer
+                  </button>
+                  <button mat-stroked-button type="button" (click)="cancelEdit()" [disabled]="actionMatchId() === match.id">
+                    Fermer
+                  </button>
+                </div>
+              </mat-card-content>
+            }
           </mat-card>
         } @empty {
           @if (!loading()) {
@@ -129,23 +191,36 @@ export class MemberPublicMatchesPage {
 
   readonly loading = signal(false);
   readonly joiningMatchId = signal<number | null>(null);
+  readonly actionMatchId = signal<number | null>(null);
+  readonly editingMatchId = signal<number | null>(null);
   readonly message = signal('');
   readonly errorMessage = signal('');
   readonly matches = signal<MatchResponse[]>([]);
   readonly sites = signal<SiteResponse[]>([]);
   readonly selectedSiteId = signal<number>(0);
   readonly search = signal('');
+  readonly editForm = new FormGroup({
+    date: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    heureDebut: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    typeMatch: new FormControl<'PUBLIC' | 'PRIVE'>('PUBLIC', { nonNullable: true, validators: [Validators.required] })
+  });
 
   readonly filteredMatches = computed(() => {
     const siteId = this.selectedSiteId();
     const search = this.search().trim().toLowerCase();
 
-    return this.matches().filter((match) => {
-      const matchesSite = !siteId || this.sites().find((site) => site.id === siteId)?.nom === match.siteNom;
-      const haystack = `${match.terrainNom} ${match.siteNom} ${match.organisateurNom}`.toLowerCase();
-      const matchesSearch = !search || haystack.includes(search);
-      return matchesSite && matchesSearch;
-    });
+    return this.matches()
+      .filter((match) => {
+        const matchesSite = !siteId || this.sites().find((site) => site.id === siteId)?.nom === match.siteNom;
+        const haystack = `${match.terrainNom} ${match.siteNom} ${match.organisateurNom}`.toLowerCase();
+        const matchesSearch = !search || haystack.includes(search);
+        return matchesSite && matchesSearch;
+      })
+      .sort((a, b) => {
+        const scoreA = this.isOrganizer(a) ? 0 : 1;
+        const scoreB = this.isOrganizer(b) ? 0 : 1;
+        return scoreA - scoreB;
+      });
   });
 
   constructor() {
@@ -200,6 +275,97 @@ export class MemberPublicMatchesPage {
           this.errorMessage.set(extractApiErrorMessage(error, 'Impossible de reserver ce match.'));
         }
       });
+  }
+
+  isOrganizer(match: MatchResponse): boolean {
+    return match.organisateurId === this.memberSession.memberId();
+  }
+
+  canModify(match: MatchResponse): boolean {
+    return this.isOrganizer(match) && this.startsInMoreThan24Hours(match);
+  }
+
+  startEdit(match: MatchResponse): void {
+    if (!this.canModify(match)) {
+      this.errorMessage.set('Modification impossible a moins de 24h du debut du match.');
+      return;
+    }
+
+    this.editingMatchId.set(match.id);
+    this.editForm.patchValue({
+      date: match.date,
+      heureDebut: match.heureDebut.slice(0, 5),
+      typeMatch: match.typeMatch
+    });
+  }
+
+  cancelEdit(): void {
+    this.editingMatchId.set(null);
+  }
+
+  saveEdit(match: MatchResponse): void {
+    const memberId = this.memberSession.memberId();
+    if (!memberId || this.editForm.invalid) {
+      return;
+    }
+
+    this.actionMatchId.set(match.id);
+    this.message.set('');
+    this.errorMessage.set('');
+
+    this.matchesApi
+      .update(match.id, {
+        terrainId: match.terrainId,
+        organisateurId: memberId,
+        date: this.editForm.controls.date.getRawValue(),
+        heureDebut: this.editForm.controls.heureDebut.getRawValue(),
+        typeMatch: this.editForm.controls.typeMatch.getRawValue()
+      })
+      .subscribe({
+        next: () => {
+          this.actionMatchId.set(null);
+          this.editingMatchId.set(null);
+          this.message.set('Match modifie avec succes.');
+          this.loadData();
+        },
+        error: (error) => {
+          this.actionMatchId.set(null);
+          this.errorMessage.set(extractApiErrorMessage(error, 'Modification du match impossible.'));
+        }
+      });
+  }
+
+  cancelOwnMatch(match: MatchResponse): void {
+    const memberId = this.memberSession.memberId();
+    if (!memberId) {
+      return;
+    }
+
+    if (!confirm(`Confirmer la suppression (annulation) du match #${match.id} ?`)) {
+      return;
+    }
+
+    this.actionMatchId.set(match.id);
+    this.message.set('');
+    this.errorMessage.set('');
+
+    this.matchesApi.cancel(match.id, memberId).subscribe({
+      next: () => {
+        this.actionMatchId.set(null);
+        this.editingMatchId.set(null);
+        this.message.set('Match annule avec succes.');
+        this.loadData();
+      },
+      error: (error) => {
+        this.actionMatchId.set(null);
+        this.errorMessage.set(extractApiErrorMessage(error, 'Suppression du match impossible.'));
+      }
+    });
+  }
+
+  private startsInMoreThan24Hours(match: MatchResponse): boolean {
+    const startDateTime = new Date(`${match.date}T${match.heureDebut}`);
+    return startDateTime.getTime() - Date.now() >= 24 * 60 * 60 * 1000;
   }
 }
 

@@ -1,14 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { TypeMembre } from '../../../shared/models/enums.model';
 import { MatchResponse } from '../../../shared/models/match.model';
 import { SiteResponse, TerrainResponse } from '../../../shared/models/site-terrain.model';
 import { MatchesApiService } from '../../../core/api/matches-api.service';
@@ -19,6 +20,33 @@ import { TerrainsApiService } from '../../../core/api/terrains-api.service';
 import { MemberSessionService } from '../../../core/auth/member-session.service';
 import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 import { MembreResponse } from '../../../shared/models/membre.model';
+
+const BOOKING_DELAY_DAYS: Record<TypeMembre, number> = {
+  GLOBAL: 21,
+  SITE: 14,
+  LIBRE: 5
+};
+
+const formatDateForInput = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getRequiredBookingDays = (memberType?: TypeMembre | null): number => BOOKING_DELAY_DAYS[memberType ?? 'LIBRE'];
+
+const createMinBookingDateValidator = (getMinDate: () => string): ValidatorFn => {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = `${control.value ?? ''}`.trim();
+    if (!value) {
+      return null;
+    }
+
+    const minDate = getMinDate();
+    return value < minDate ? { minBookingDate: { minDate, actualDate: value } } : null;
+  };
+};
 
 @Component({
   selector: 'app-member-create-match-page',
@@ -35,16 +63,20 @@ import { MembreResponse } from '../../../shared/models/membre.model';
     MatProgressSpinnerModule
   ],
   template: `
-    <section class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
+    <section class="page-shell max-w-5xl">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-semibold text-slate-900">Creer un match</h1>
+          <h1 class="title-gradient text-2xl font-semibold">Creer un match</h1>
           <p class="text-sm text-slate-600">Public ou prive, selon les regles du backend.</p>
+          <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+                [class]="form.controls.typeMatch.value === 'PRIVE' ? 'bg-violet-100 text-violet-800' : 'bg-emerald-100 text-emerald-800'">
+            Mode creation : {{ form.controls.typeMatch.value }}
+          </span>
         </div>
         <a mat-stroked-button routerLink="/member/matches">Retour aux matchs publics</a>
       </div>
 
-      <mat-card>
+      <mat-card class="card-soft panel-gradient">
         <mat-card-content>
           <form [formGroup]="form" class="grid gap-4 pt-4 md:grid-cols-2" (ngSubmit)="submit()">
             <mat-form-field appearance="outline">
@@ -58,7 +90,7 @@ import { MembreResponse } from '../../../shared/models/membre.model';
 
             <mat-form-field appearance="outline">
               <mat-label>Terrain</mat-label>
-              <mat-select formControlName="terrainId">
+              <mat-select formControlName="terrainId" [disabled]="!terrains().length">
                 @for (terrain of terrains(); track terrain.id) {
                   <mat-option [value]="terrain.id">{{ terrain.nom }}</mat-option>
                 }
@@ -67,7 +99,11 @@ import { MembreResponse } from '../../../shared/models/membre.model';
 
             <mat-form-field appearance="outline">
               <mat-label>Date</mat-label>
-              <input matInput type="date" formControlName="date" />
+              <input matInput type="date" formControlName="date" [min]="minBookingDate()" />
+              <mat-hint>Date minimale autorisee : {{ minBookingDate() }}</mat-hint>
+              @if (form.controls.date.hasError('minBookingDate') && (form.controls.date.dirty || form.controls.date.touched)) {
+                <mat-error>{{ bookingDelayErrorMessage() }}</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline">
@@ -86,11 +122,20 @@ import { MembreResponse } from '../../../shared/models/membre.model';
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:col-span-2">
               <p><strong>Rappel:</strong></p>
               <ul class="ml-4 list-disc space-y-1">
-                <li>GLOBAL: jusqu'a 3 semaines avant</li>
-                <li>SITE: jusqu'a 2 semaines avant sur son site</li>
-                <li>LIBRE: jusqu'a 5 jours avant</li>
+                <li>GLOBAL: au moins 3 semaines a l'avance</li>
+                <li>SITE: au moins 2 semaines a l'avance sur son site</li>
+                <li>LIBRE: au moins 5 jours a l'avance</li>
               </ul>
+              <p class="mt-2 text-slate-500">Premiere date disponible selon votre profil: {{ minBookingDate() }}</p>
             </div>
+
+            @if (!sites().length && !loading()) {
+              <p class="status-error md:col-span-2">Aucun site disponible pour creer un match.</p>
+            }
+
+            @if (form.controls.siteId.value && !terrains().length && !loading()) {
+              <p class="status-error md:col-span-2">Aucun terrain disponible pour le site selectionne.</p>
+            }
 
             @if (form.controls.typeMatch.value === 'PRIVE') {
               <div class="md:col-span-2">
@@ -113,17 +158,18 @@ import { MembreResponse } from '../../../shared/models/membre.model';
             }
 
             @if (message()) {
-              <p class="text-sm text-emerald-700 md:col-span-2">{{ message() }}</p>
+              <p class="status-success md:col-span-2">{{ message() }}</p>
             }
 
             @if (errorMessage()) {
-              <p class="text-sm text-red-600 md:col-span-2">{{ errorMessage() }}</p>
+              <p class="status-error md:col-span-2">{{ errorMessage() }}</p>
             }
 
             <div class="flex items-center gap-3 md:col-span-2">
-              <button mat-flat-button color="primary" type="submit" [disabled]="loading() || form.invalid">
+              <button mat-flat-button color="primary" type="submit" [disabled]="loading() || form.invalid || !terrains().length">
                 Creer le match
               </button>
+              <a mat-stroked-button routerLink="/member/profile">Retour profil</a>
               @if (loading()) {
                 <mat-spinner diameter="24"></mat-spinner>
               }
@@ -141,6 +187,7 @@ export class MemberCreateMatchPage {
   private readonly membresApi = inject(MembresApiService);
   private readonly reservationsApi = inject(ReservationsApiService);
   private readonly memberSession = inject(MemberSessionService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
   readonly loading = signal(false);
@@ -150,11 +197,24 @@ export class MemberCreateMatchPage {
   readonly terrains = signal<TerrainResponse[]>([]);
   readonly member = computed(() => this.memberSession.member());
   readonly isSiteMember = computed(() => this.member()?.typeMembre === 'SITE');
+  readonly bookingDelayErrorMessage = computed(() => {
+    const memberType = this.member()?.typeMembre ?? 'LIBRE';
+    return `Le profil ${memberType} doit reserver au moins ${getRequiredBookingDays(memberType)} jours a l'avance. Premiere date disponible : ${this.minBookingDate()}.`;
+  });
+  readonly minBookingDate = computed(() => {
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+    today.setDate(today.getDate() + getRequiredBookingDays(this.member()?.typeMembre));
+    return formatDateForInput(today);
+  });
 
   readonly form = new FormGroup({
     siteId: new FormControl<number | null>(null, { validators: [Validators.required] }),
     terrainId: new FormControl<number | null>(null, { validators: [Validators.required] }),
-    date: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    date: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, createMinBookingDateValidator(() => this.minBookingDate())]
+    }),
     heureDebut: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     typeMatch: new FormControl<'PUBLIC' | 'PRIVE'>('PUBLIC', {
       nonNullable: true,
@@ -166,10 +226,32 @@ export class MemberCreateMatchPage {
   });
 
   constructor() {
+    if (!this.memberSession.isAuthenticated()) {
+      this.router.navigateByUrl('/member');
+      return;
+    }
+
+    this.applyPreferredTypeFromQuery();
+    this.applyDefaultStartTime();
+    this.applyMinimumBookingDate();
     this.loadSites();
   }
 
+  private applyDefaultStartTime(): void {
+    if (!this.form.controls.heureDebut.value) {
+      this.form.controls.heureDebut.setValue('09:00');
+    }
+  }
+
+  private applyPreferredTypeFromQuery(): void {
+    const preferredType = this.route.snapshot.queryParamMap.get('type')?.toUpperCase();
+    if (preferredType === 'PUBLIC' || preferredType === 'PRIVE') {
+      this.form.controls.typeMatch.setValue(preferredType);
+    }
+  }
+
   loadSites(): void {
+    this.errorMessage.set('');
     this.sitesApi.getAll().subscribe({
       next: (sites) => {
         this.sites.set(sites);
@@ -177,6 +259,13 @@ export class MemberCreateMatchPage {
         if (member?.typeMembre === 'SITE' && member.siteId) {
           this.form.controls.siteId.setValue(member.siteId);
           this.onSiteChange(member.siteId);
+          return;
+        }
+
+        if (sites.length) {
+          const defaultSiteId = sites[0].id;
+          this.form.controls.siteId.setValue(defaultSiteId);
+          this.onSiteChange(defaultSiteId);
         }
       },
       error: (error) => {
@@ -185,10 +274,21 @@ export class MemberCreateMatchPage {
     });
   }
 
-  onSiteChange(siteId: number): void {
+  onSiteChange(siteId: number | null): void {
     this.form.controls.terrainId.setValue(null);
+    this.terrains.set([]);
+
+    if (!siteId) {
+      return;
+    }
+
     this.terrainsApi.getBySite(siteId).subscribe({
-      next: (terrains) => this.terrains.set(terrains),
+      next: (terrains) => {
+        this.terrains.set(terrains);
+        if (terrains.length) {
+          this.form.controls.terrainId.setValue(terrains[0].id);
+        }
+      },
       error: (error) => {
         this.errorMessage.set(extractApiErrorMessage(error, 'Impossible de charger les terrains.'));
       }
@@ -196,8 +296,13 @@ export class MemberCreateMatchPage {
   }
 
   submit(): void {
+    this.form.markAllAsTouched();
+
     const organiser = this.member();
     if (!organiser?.id || this.form.invalid || this.loading()) {
+      if (this.form.controls.date.hasError('minBookingDate')) {
+        this.errorMessage.set(this.bookingDelayErrorMessage());
+      }
       return;
     }
 
@@ -226,9 +331,31 @@ export class MemberCreateMatchPage {
         next: (createdMatch) => this.handleInvites(createdMatch, organiser),
         error: (error) => {
           this.loading.set(false);
-          this.errorMessage.set(extractApiErrorMessage(error, 'Creation du match impossible.'));
+          this.errorMessage.set(this.toFriendlyCreationErrorMessage(error));
         }
       });
+  }
+
+  private applyMinimumBookingDate(): void {
+    const dateControl = this.form.controls.date;
+    const minDate = this.minBookingDate();
+    const selectedDate = dateControl.getRawValue();
+
+    if (!selectedDate || selectedDate < minDate) {
+      dateControl.setValue(minDate);
+    }
+
+    dateControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private toFriendlyCreationErrorMessage(error: unknown): string {
+    const apiMessage = extractApiErrorMessage(error, 'Creation du match impossible.');
+
+    if (apiMessage.includes('must book at least')) {
+      return this.bookingDelayErrorMessage();
+    }
+
+    return apiMessage;
   }
 
   private handleInvites(createdMatch: MatchResponse, organiser: MembreResponse): void {

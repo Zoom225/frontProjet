@@ -19,7 +19,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
   standalone: true,
   imports: [CommonModule, RouterLink, MatCardModule, MatButtonModule, MatProgressSpinnerModule],
   template: `
-    <section class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
+    <section class="page-shell">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-semibold text-slate-900">Gestion des matchs</h1>
@@ -32,15 +32,15 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
         <mat-spinner diameter="32"></mat-spinner>
       }
       @if (message()) {
-        <p class="text-sm text-emerald-700">{{ message() }}</p>
+        <p class="status-success">{{ message() }}</p>
       }
       @if (errorMessage()) {
-        <p class="text-sm text-red-600">{{ errorMessage() }}</p>
+        <p class="status-error">{{ errorMessage() }}</p>
       }
 
       <div class="grid gap-4 lg:grid-cols-2">
         @for (match of filteredMatches(); track match.id) {
-          <mat-card>
+          <mat-card class="card-soft">
             <mat-card-header>
               <mat-card-title>{{ match.terrainNom }} - {{ match.siteNom }}</mat-card-title>
               <mat-card-subtitle>{{ match.date }} · {{ match.heureDebut }} - {{ match.heureFin }}</mat-card-subtitle>
@@ -56,7 +56,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                   <p class="mb-2 font-medium">Reservations du match</p>
                   @for (reservation of selectedReservations(); track reservation.id) {
                     <div class="mb-2 rounded bg-slate-50 p-2 text-sm">
-                      {{ reservation.membreNom }} · {{ reservation.statut }} · {{ reservation.paiement.statut }}
+                      {{ reservation.membreNom }} · {{ reservation.statut }} · {{ reservation.paiement?.statut || 'N/A' }}
                     </div>
                   } @empty {
                     <p class="text-sm text-slate-600">Aucune reservation.</p>

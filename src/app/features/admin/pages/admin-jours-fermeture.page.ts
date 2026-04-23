@@ -32,7 +32,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     MatProgressSpinnerModule
   ],
   template: `
-    <section class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
+    <section class="page-shell">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-semibold text-slate-900">Jours de fermeture</h1>
@@ -41,7 +41,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
         <a mat-stroked-button routerLink="/admin">Retour dashboard</a>
       </div>
 
-      <mat-card>
+      <mat-card class="card-soft">
         <mat-card-header>
           <mat-card-title>Ajouter un jour de fermeture</mat-card-title>
         </mat-card-header>
@@ -74,10 +74,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
             </div>
 
             @if (message()) {
-              <p class="text-sm text-emerald-700 md:col-span-2">{{ message() }}</p>
+              <p class="status-success md:col-span-2">{{ message() }}</p>
             }
             @if (errorMessage()) {
-              <p class="text-sm text-red-600 md:col-span-2">{{ errorMessage() }}</p>
+              <p class="status-error md:col-span-2">{{ errorMessage() }}</p>
             }
 
             <div class="flex items-center gap-3 md:col-span-2">
@@ -95,7 +95,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
       <div class="grid gap-4 md:grid-cols-2">
         @for (jour of filteredJours(); track jour.id) {
-          <mat-card>
+          <mat-card class="card-soft">
             <mat-card-header>
               <mat-card-title>{{ jour.date }}</mat-card-title>
               <mat-card-subtitle>
@@ -208,8 +208,8 @@ export class AdminJoursFermeturePage {
     }).subscribe({
       next: () => {
         this.loading.set(false);
-        this.message.set('Jour de fermeture ajoute.');
         this.resetForm();
+        this.message.set('Jour de fermeture ajoute.');
         this.loadData();
       },
       error: (error) => {

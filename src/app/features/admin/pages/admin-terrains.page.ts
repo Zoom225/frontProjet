@@ -30,7 +30,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     MatProgressSpinnerModule
   ],
   template: `
-    <section class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
+    <section class="page-shell">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-semibold text-slate-900">Gestion des terrains</h1>
@@ -39,7 +39,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
         <a mat-stroked-button routerLink="/admin">Retour dashboard</a>
       </div>
 
-      <mat-card>
+      <mat-card class="card-soft">
         <mat-card-header><mat-card-title>{{ editingId() ? 'Modifier un terrain' : 'Nouveau terrain' }}</mat-card-title></mat-card-header>
         <mat-card-content>
           <form [formGroup]="form" class="grid gap-4 pt-4 md:grid-cols-2" (ngSubmit)="save()">
@@ -58,10 +58,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
             </mat-form-field>
 
             @if (message()) {
-              <p class="text-sm text-emerald-700 md:col-span-2">{{ message() }}</p>
+              <p class="status-success md:col-span-2">{{ message() }}</p>
             }
             @if (errorMessage()) {
-              <p class="text-sm text-red-600 md:col-span-2">{{ errorMessage() }}</p>
+              <p class="status-error md:col-span-2">{{ errorMessage() }}</p>
             }
 
             <div class="flex items-center gap-3 md:col-span-2">
@@ -75,7 +75,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
       <div class="grid gap-4 md:grid-cols-2">
         @for (terrain of filteredTerrains(); track terrain.id) {
-          <mat-card>
+          <mat-card class="card-soft">
             <mat-card-header>
               <mat-card-title>{{ terrain.nom }}</mat-card-title>
               <mat-card-subtitle>{{ terrain.siteNom }}</mat-card-subtitle>
@@ -119,6 +119,8 @@ export class AdminTerrainsPage {
   }
 
   loadData(): void {
+    this.loading.set(true);
+    this.errorMessage.set('');
     forkJoin({
       terrains: this.terrainsApi.getAll(),
       sites: this.sitesApi.getAll()
@@ -130,8 +132,10 @@ export class AdminTerrainsPage {
         if (this.adminSession.isSiteAdmin() && this.adminSession.siteId()) {
           this.form.controls.siteId.setValue(this.adminSession.siteId());
         }
+        this.loading.set(false);
       },
       error: (error) => {
+        this.loading.set(false);
         this.errorMessage.set(extractApiErrorMessage(error, 'Impossible de charger les terrains.'));
       }
     });
@@ -144,6 +148,8 @@ export class AdminTerrainsPage {
 
   resetForm(): void {
     this.editingId.set(null);
+    this.message.set('');
+    this.errorMessage.set('');
     this.form.reset({ nom: '', siteId: this.adminSession.isSiteAdmin() ? this.adminSession.siteId() : null });
   }
 
@@ -153,6 +159,8 @@ export class AdminTerrainsPage {
     }
 
     this.loading.set(true);
+    this.message.set('');
+    this.errorMessage.set('');
     const payload = this.form.getRawValue() as TerrainRequest;
     if (this.adminSession.isSiteAdmin()) {
       payload.siteId = this.adminSession.siteId()!;
@@ -161,9 +169,10 @@ export class AdminTerrainsPage {
     const request$ = this.editingId() ? this.terrainsApi.update(this.editingId()!, payload) : this.terrainsApi.create(payload);
     request$.subscribe({
       next: () => {
+        const wasEditing = this.editingId() !== null;
         this.loading.set(false);
-        this.message.set(this.editingId() ? 'Terrain mis a jour.' : 'Terrain cree.');
         this.resetForm();
+        this.message.set(wasEditing ? 'Terrain mis a jour.' : 'Terrain cree.');
         this.loadData();
       },
       error: (error) => {
@@ -174,6 +183,8 @@ export class AdminTerrainsPage {
   }
 
   remove(id: number): void {
+    this.message.set('');
+    this.errorMessage.set('');
     this.terrainsApi.delete(id).subscribe({
       next: () => {
         this.message.set('Terrain supprime.');

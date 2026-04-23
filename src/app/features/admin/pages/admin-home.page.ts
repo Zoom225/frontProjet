@@ -25,7 +25,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     <section class="page-shell">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-semibold text-slate-900">Dashboard administrateur</h1>
+          <h1 class="title-gradient text-2xl font-semibold">Dashboard administrateur</h1>
           <p class="text-sm text-slate-600">
             Vue {{ adminSession.isGlobalAdmin() ? 'globale' : 'site' }} des indicateurs principaux.
           </p>
@@ -48,10 +48,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
       }
 
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <mat-card class="kpi-card"><mat-card-content class="py-2"><p class="text-sm text-slate-500">Matchs</p><p class="text-3xl font-semibold">{{ matches().length }}</p></mat-card-content></mat-card>
-        <mat-card class="kpi-card"><mat-card-content class="py-2"><p class="text-sm text-slate-500">Reservations</p><p class="text-3xl font-semibold">{{ reservations().length }}</p></mat-card-content></mat-card>
-        <mat-card class="kpi-card"><mat-card-content class="py-2"><p class="text-sm text-slate-500">Membres</p><p class="text-3xl font-semibold">{{ members().length }}</p></mat-card-content></mat-card>
-        <mat-card class="kpi-card"><mat-card-content class="py-2"><p class="text-sm text-slate-500">Chiffre d'affaires</p><p class="text-3xl font-semibold">{{ revenue() }} EUR</p></mat-card-content></mat-card>
+        <mat-card class="kpi-card panel-gradient"><mat-card-content class="py-2"><p class="text-sm text-sky-700">Matchs</p><p class="text-3xl font-semibold text-slate-900">{{ matches().length }}</p></mat-card-content></mat-card>
+        <mat-card class="kpi-card panel-gradient"><mat-card-content class="py-2"><p class="text-sm text-indigo-700">Reservations</p><p class="text-3xl font-semibold text-slate-900">{{ reservations().length }}</p></mat-card-content></mat-card>
+        <mat-card class="kpi-card panel-gradient"><mat-card-content class="py-2"><p class="text-sm text-violet-700">Membres</p><p class="text-3xl font-semibold text-slate-900">{{ members().length }}</p></mat-card-content></mat-card>
+        <mat-card class="kpi-card panel-gradient"><mat-card-content class="py-2"><p class="text-sm text-emerald-700">Chiffre d'affaires</p><p class="text-3xl font-semibold text-slate-900">{{ revenue() }} EUR</p></mat-card-content></mat-card>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
@@ -104,8 +104,8 @@ export class AdminHomePage {
 
   readonly revenue = computed(() =>
     this.reservations()
-      .filter((reservation) => reservation.paiement.statut === 'PAYE')
-      .reduce((sum, reservation) => sum + reservation.paiement.montant, 0)
+      .filter((reservation) => reservation.paiement?.statut === 'PAYE')
+      .reduce((sum, reservation) => sum + (reservation.paiement?.montant ?? 0), 0)
   );
   readonly completeMatchesCount = computed(() => this.matches().filter((match) => match.statut === 'COMPLET').length);
   readonly pendingReservationsCount = computed(

@@ -20,6 +20,6 @@ export interface ReservationResponse {
   membreId: number;
   membreNom: string;
   statut: StatutReservation;
-  paiement: PaiementResponse;
+  paiement: PaiementResponse | null;
 }
 

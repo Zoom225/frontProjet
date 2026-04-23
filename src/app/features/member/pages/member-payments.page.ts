@@ -15,7 +15,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
   standalone: true,
   imports: [CommonModule, RouterLink, MatButtonModule, MatCardModule, MatChipsModule, MatProgressSpinnerModule],
   template: `
-    <section class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
+    <section class="page-shell max-w-5xl">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-semibold text-slate-900">Mes paiements</h1>
@@ -29,10 +29,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
       }
 
       @if (errorMessage()) {
-        <p class="text-sm text-red-600">{{ errorMessage() }}</p>
+        <p class="status-error">{{ errorMessage() }}</p>
       }
 
-      <mat-card>
+      <mat-card class="card-soft">
         <mat-card-content class="grid gap-4 pt-4 md:grid-cols-3">
           <div>
             <p class="text-sm text-slate-500">Total paiements</p>
@@ -51,7 +51,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
       <div class="grid gap-4 md:grid-cols-2">
         @for (payment of payments(); track payment.id) {
-          <mat-card>
+          <mat-card class="card-soft">
             <mat-card-header>
               <mat-card-title>Paiement #{{ payment.id }}</mat-card-title>
               <mat-card-subtitle>{{ payment.datePaiement || 'Pas encore regle' }}</mat-card-subtitle>

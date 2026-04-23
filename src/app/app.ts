@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -17,7 +17,7 @@ import { MemberSessionService } from './core/auth/member-session.service';
           <span>PadelPlay</span>
         </a>
 
-        <nav class="hidden items-center gap-1 lg:flex">
+        <nav class="hidden items-center gap-1 md:flex">
           <a mat-button routerLink="/" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Accueil</a>
           <a mat-button routerLink="/member" routerLinkActive="active-link">Membre</a>
           <a mat-button routerLink="/admin" routerLinkActive="active-link">Admin</a>
@@ -25,6 +25,7 @@ import { MemberSessionService } from './core/auth/member-session.service';
           @if (memberSession.isAuthenticated()) {
             <a mat-button routerLink="/member/profile" routerLinkActive="active-link">Profil</a>
             <a mat-button routerLink="/member/matches" routerLinkActive="active-link">Matchs</a>
+            <a mat-flat-button color="accent" routerLink="/member/matches/new" routerLinkActive="active-link">Creer match</a>
             <a mat-button routerLink="/member/reservations" routerLinkActive="active-link">Reservations</a>
             <a mat-button routerLink="/member/payments" routerLinkActive="active-link">Paiements</a>
             <button mat-stroked-button type="button" (click)="logoutMember()">Logout membre</button>
@@ -42,15 +43,19 @@ import { MemberSessionService } from './core/auth/member-session.service';
           } @else {
             <a mat-stroked-button routerLink="/admin/login">Login admin</a>
           }
+
+          <button mat-stroked-button type="button" (click)="toggleTheme()">
+            {{ isOceanTheme() ? 'Theme classique' : 'Theme ocean' }}
+          </button>
         </nav>
 
-        <button mat-stroked-button type="button" class="lg:hidden" (click)="toggleMobileMenu()">
+        <button mat-stroked-button type="button" class="md:hidden" (click)="toggleMobileMenu()">
           {{ mobileMenuOpen() ? 'Fermer' : 'Menu' }}
         </button>
       </div>
 
       @if (mobileMenuOpen()) {
-        <div class="mx-auto mt-2 w-full max-w-7xl rounded-xl bg-white/10 p-2 backdrop-blur-sm lg:hidden">
+        <div class="mx-auto mt-2 w-full max-w-7xl rounded-xl bg-white/10 p-2 backdrop-blur-sm md:hidden">
           <nav class="grid gap-1">
             <a mat-button routerLink="/" (click)="closeMobileMenu()">Accueil</a>
             <a mat-button routerLink="/member" (click)="closeMobileMenu()">Membre</a>
@@ -59,6 +64,7 @@ import { MemberSessionService } from './core/auth/member-session.service';
             @if (memberSession.isAuthenticated()) {
               <a mat-button routerLink="/member/profile" (click)="closeMobileMenu()">Profil membre</a>
               <a mat-button routerLink="/member/matches" (click)="closeMobileMenu()">Matchs</a>
+              <a mat-button routerLink="/member/matches/new" (click)="closeMobileMenu()">Creer match</a>
               <a mat-button routerLink="/member/reservations" (click)="closeMobileMenu()">Reservations</a>
               <a mat-button routerLink="/member/payments" (click)="closeMobileMenu()">Paiements</a>
             }
@@ -70,6 +76,10 @@ import { MemberSessionService } from './core/auth/member-session.service';
               <a mat-button routerLink="/admin/terrains" (click)="closeMobileMenu()">Terrains</a>
               <a mat-button routerLink="/admin/fermetures" (click)="closeMobileMenu()">Fermetures</a>
             }
+
+            <button mat-stroked-button type="button" (click)="toggleTheme()">
+              {{ isOceanTheme() ? 'Theme classique' : 'Theme ocean' }}
+            </button>
           </nav>
         </div>
       }
@@ -95,10 +105,21 @@ import { MemberSessionService } from './core/auth/member-session.service';
   ]
 })
 export class App {
+  private static readonly THEME_KEY = 'padel_theme';
+
   readonly adminSession = inject(AdminSessionService);
   readonly memberSession = inject(MemberSessionService);
   readonly mobileMenuOpen = signal(false);
+  readonly isOceanTheme = signal(false);
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
+
+  constructor() {
+    const storedTheme = localStorage.getItem(App.THEME_KEY);
+    const isOcean = storedTheme === 'ocean';
+    this.isOceanTheme.set(isOcean);
+    this.applyTheme(isOcean);
+  }
 
   toggleMobileMenu(): void {
     this.mobileMenuOpen.update((value) => !value);
@@ -106,6 +127,17 @@ export class App {
 
   closeMobileMenu(): void {
     this.mobileMenuOpen.set(false);
+  }
+
+  toggleTheme(): void {
+    const next = !this.isOceanTheme();
+    this.isOceanTheme.set(next);
+    this.applyTheme(next);
+    localStorage.setItem(App.THEME_KEY, next ? 'ocean' : 'classic');
+  }
+
+  private applyTheme(isOcean: boolean): void {
+    this.document.body.classList.toggle('ocean-theme', isOcean);
   }
 
   logoutAdmin(): void {

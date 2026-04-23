@@ -22,8 +22,8 @@ import { MembreResponse } from '../../../shared/models/membre.model';
     MatChipsModule
   ],
   template: `
-    <section class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
-      <mat-card>
+    <section class="page-shell max-w-5xl">
+      <mat-card class="card-soft">
         <mat-card-header>
           <mat-card-title>Mon profil membre</mat-card-title>
           <mat-card-subtitle>Informations rechargees depuis le backend</mat-card-subtitle>
@@ -63,11 +63,32 @@ import { MembreResponse } from '../../../shared/models/membre.model';
           }
 
           @if (errorMessage()) {
-            <p class="mt-4 text-sm text-red-600">{{ errorMessage() }}</p>
+            <p class="status-error mt-4">{{ errorMessage() }}</p>
           }
+
+          <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <a routerLink="/member/matches/new" class="card-soft block rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-indigo-50 p-5 no-underline transition hover:-translate-y-0.5 hover:shadow-md">
+              <p class="text-sm font-medium uppercase tracking-wide text-sky-700">Action rapide</p>
+              <p class="mt-2 text-xl font-semibold text-slate-900">Creer un match</p>
+              <p class="mt-2 text-sm text-slate-600">Choisis ton site, ton terrain, la date et lance une reservation.</p>
+            </a>
+            <a routerLink="/member/matches" class="card-soft block rounded-2xl p-5 no-underline transition hover:-translate-y-0.5 hover:shadow-md">
+              <p class="text-sm font-medium uppercase tracking-wide text-indigo-700">Explorer</p>
+              <p class="mt-2 text-xl font-semibold text-slate-900">Matchs publics</p>
+              <p class="mt-2 text-sm text-slate-600">Rejoins rapidement une partie disponible.</p>
+            </a>
+            <a routerLink="/member/reservations" class="card-soft block rounded-2xl p-5 no-underline transition hover:-translate-y-0.5 hover:shadow-md">
+              <p class="text-sm font-medium uppercase tracking-wide text-emerald-700">Suivi</p>
+              <p class="mt-2 text-xl font-semibold text-slate-900">Mes reservations</p>
+              <p class="mt-2 text-sm text-slate-600">Paye, annule ou suis tes inscriptions.</p>
+            </a>
+          </div>
 
           <div class="mt-6 flex flex-wrap gap-3">
             <button mat-flat-button color="primary" type="button" (click)="reload()">Rafraichir</button>
+            <a mat-flat-button color="primary" routerLink="/member/matches/new">Creer un match</a>
+            <a mat-stroked-button routerLink="/member/matches">Matchs publics</a>
+            <a mat-stroked-button routerLink="/member/reservations">Mes reservations</a>
             <a mat-stroked-button routerLink="/member">Retour espace membre</a>
             <button mat-stroked-button type="button" (click)="logout()">Deconnexion membre</button>
           </div>

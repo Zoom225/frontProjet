@@ -32,6 +32,14 @@ export class MatchesApiService {
     return this.http.post<MatchResponse>(apiUrl('/matches'), payload);
   }
 
+  update(id: number, payload: MatchRequest): Observable<MatchResponse> {
+    return this.http.put<MatchResponse>(apiUrl(`/matches/${id}`), payload);
+  }
+
+  cancel(id: number, requesterId: number): Observable<void> {
+    return this.http.patch<void>(apiUrl(`/matches/${id}/cancel?requesterId=${requesterId}`), {});
+  }
+
   convertToPublic(id: number): Observable<void> {
     return this.http.patch<void>(apiUrl(`/matches/${id}/convert-public`), {});
   }

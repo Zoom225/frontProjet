@@ -26,7 +26,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     MatProgressSpinnerModule
   ],
   template: `
-    <section class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
+    <section class="page-shell">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-semibold text-slate-900">Gestion des sites</h1>
@@ -35,7 +35,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
         <a mat-stroked-button routerLink="/admin">Retour dashboard</a>
       </div>
 
-      <mat-card>
+      <mat-card class="card-soft">
         <mat-card-header><mat-card-title>{{ editingId() ? 'Modifier un site' : 'Nouveau site' }}</mat-card-title></mat-card-header>
         <mat-card-content>
           <form [formGroup]="form" class="grid gap-4 pt-4 md:grid-cols-2" (ngSubmit)="save()">
@@ -48,10 +48,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
             <mat-form-field appearance="outline"><mat-label>Annee civile</mat-label><input matInput type="number" formControlName="anneeCivile" /></mat-form-field>
 
             @if (message()) {
-              <p class="text-sm text-emerald-700 md:col-span-2">{{ message() }}</p>
+              <p class="status-success md:col-span-2">{{ message() }}</p>
             }
             @if (errorMessage()) {
-              <p class="text-sm text-red-600 md:col-span-2">{{ errorMessage() }}</p>
+              <p class="status-error md:col-span-2">{{ errorMessage() }}</p>
             }
 
             <div class="flex items-center gap-3 md:col-span-2">
@@ -65,7 +65,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
       <div class="grid gap-4 md:grid-cols-2">
         @for (site of sites(); track site.id) {
-          <mat-card>
+          <mat-card class="card-soft">
             <mat-card-header>
               <mat-card-title>{{ site.nom }}</mat-card-title>
               <mat-card-subtitle>{{ site.adresse }}</mat-card-subtitle>
@@ -152,9 +152,10 @@ export class AdminSitesPage {
     const request$ = this.editingId() ? this.sitesApi.update(this.editingId()!, payload) : this.sitesApi.create(payload);
     request$.subscribe({
       next: () => {
+        const wasEditing = this.editingId() !== null;
         this.loading.set(false);
-        this.message.set(this.editingId() ? 'Site mis a jour.' : 'Site cree.');
         this.resetForm();
+        this.message.set(wasEditing ? 'Site mis a jour.' : 'Site cree.');
         this.loadSites();
       },
       error: (error) => {
