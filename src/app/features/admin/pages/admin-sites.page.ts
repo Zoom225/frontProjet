@@ -26,64 +26,184 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     MatProgressSpinnerModule
   ],
   template: `
-    <section class="page-shell">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-semibold text-slate-900">Gestion des sites</h1>
-          <p class="text-sm text-slate-600">Creation, edition et suppression des sites.</p>
+    <!-- En-tête sites -->
+    <div class="adm-site-header">
+      <div class="adm-site-header-inner">
+        <div class="adm-site-title-block">
+          <span class="adm-site-icon">🏟️</span>
+          <div>
+            <h1 class="adm-site-title">Gestion des sites</h1>
+            <p class="adm-site-sub">Création, édition et suppression des sites</p>
+          </div>
         </div>
-        <a mat-stroked-button routerLink="/admin">Retour dashboard</a>
+        <a routerLink="/admin" class="adm-site-back-btn">← Tableau de bord</a>
+      </div>
+    </div>
+
+    <section class="page-shell">
+      <!-- Formulaire -->
+      <div class="adm-site-form-card">
+        <div class="adm-site-form-header">
+          <span>{{ editingId() ? '✏️' : '➕' }}</span>
+          <h2 class="adm-site-form-title">{{ editingId() ? 'Modifier un site' : 'Nouveau site' }}</h2>
+        </div>
+        <form [formGroup]="form" class="grid gap-4 pt-4 md:grid-cols-2" (ngSubmit)="save()">
+          <mat-form-field appearance="outline"><mat-label>Nom</mat-label><input matInput formControlName="nom" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Adresse</mat-label><input matInput formControlName="adresse" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Ouverture</mat-label><input matInput type="time" formControlName="heureOuverture" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Fermeture</mat-label><input matInput type="time" formControlName="heureFermeture" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Durée match (min)</mat-label><input matInput type="number" formControlName="dureeMatchMinutes" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Pause entre matchs (min)</mat-label><input matInput type="number" formControlName="dureeEntreMatchMinutes" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Année civile</mat-label><input matInput type="number" formControlName="anneeCivile" /></mat-form-field>
+
+          @if (message()) {
+            <div class="status-success md:col-span-2">✅ {{ message() }}</div>
+          }
+          @if (errorMessage()) {
+            <div class="status-error md:col-span-2">❌ {{ errorMessage() }}</div>
+          }
+
+          <div class="flex flex-wrap items-center gap-3 md:col-span-2">
+            <button class="adm-site-btn-primary" type="submit" [disabled]="loading() || form.invalid">
+              {{ editingId() ? '💾 Enregistrer' : '➕ Créer le site' }}
+            </button>
+            <button class="adm-site-btn-secondary" type="button" (click)="resetForm()">🔄 Réinitialiser</button>
+            @if (loading()) { <mat-spinner diameter="24"></mat-spinner> }
+          </div>
+        </form>
       </div>
 
-      <mat-card class="card-soft">
-        <mat-card-header><mat-card-title>{{ editingId() ? 'Modifier un site' : 'Nouveau site' }}</mat-card-title></mat-card-header>
-        <mat-card-content>
-          <form [formGroup]="form" class="grid gap-4 pt-4 md:grid-cols-2" (ngSubmit)="save()">
-            <mat-form-field appearance="outline"><mat-label>Nom</mat-label><input matInput formControlName="nom" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>Adresse</mat-label><input matInput formControlName="adresse" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>Ouverture</mat-label><input matInput type="time" formControlName="heureOuverture" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>Fermeture</mat-label><input matInput type="time" formControlName="heureFermeture" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>Duree match (min)</mat-label><input matInput type="number" formControlName="dureeMatchMinutes" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>Pause entre matchs (min)</mat-label><input matInput type="number" formControlName="dureeEntreMatchMinutes" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>Annee civile</mat-label><input matInput type="number" formControlName="anneeCivile" /></mat-form-field>
-
-            @if (message()) {
-              <p class="status-success md:col-span-2">{{ message() }}</p>
-            }
-            @if (errorMessage()) {
-              <p class="status-error md:col-span-2">{{ errorMessage() }}</p>
-            }
-
-            <div class="flex items-center gap-3 md:col-span-2">
-              <button mat-flat-button color="primary" type="submit" [disabled]="loading() || form.invalid">Enregistrer</button>
-              <button mat-stroked-button type="button" (click)="resetForm()">Reinitialiser</button>
-              @if (loading()) { <mat-spinner diameter="24"></mat-spinner> }
-            </div>
-          </form>
-        </mat-card-content>
-      </mat-card>
-
-      <div class="grid gap-4 md:grid-cols-2">
+      <!-- Liste des sites -->
+      <div class="grid gap-5 md:grid-cols-2">
         @for (site of sites(); track site.id) {
-          <mat-card class="card-soft">
-            <mat-card-header>
-              <mat-card-title>{{ site.nom }}</mat-card-title>
-              <mat-card-subtitle>{{ site.adresse }}</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <p><strong>Horaires:</strong> {{ site.heureOuverture }} - {{ site.heureFermeture }}</p>
-              <p><strong>Match:</strong> {{ site.dureeMatchMinutes }} min</p>
-              <p><strong>Pause:</strong> {{ site.dureeEntreMatchMinutes }} min</p>
-              <p><strong>Annee:</strong> {{ site.anneeCivile }}</p>
-            </mat-card-content>
-            <mat-card-actions>
-              <button mat-stroked-button type="button" (click)="edit(site)">Modifier</button>
-              <button mat-stroked-button color="warn" type="button" (click)="remove(site.id)">Supprimer</button>
-            </mat-card-actions>
-          </mat-card>
+          <div class="adm-site-card">
+            <div class="adm-site-card-header">
+              <div>
+                <div class="adm-site-card-name">🏟️ {{ site.nom }}</div>
+                <div class="adm-site-card-addr">📍 {{ site.adresse }}</div>
+              </div>
+            </div>
+            <div class="adm-site-info-grid">
+              <div class="adm-site-info-item adm-site-info-teal">
+                <span class="adm-site-info-label">🕐 Horaires</span>
+                <span class="adm-site-info-val">{{ site.heureOuverture }} – {{ site.heureFermeture }}</span>
+              </div>
+              <div class="adm-site-info-item adm-site-info-violet">
+                <span class="adm-site-info-label">⏱ Durée match</span>
+                <span class="adm-site-info-val">{{ site.dureeMatchMinutes }} min</span>
+              </div>
+              <div class="adm-site-info-item adm-site-info-amber">
+                <span class="adm-site-info-label">⏸ Pause</span>
+                <span class="adm-site-info-val">{{ site.dureeEntreMatchMinutes }} min</span>
+              </div>
+              <div class="adm-site-info-item adm-site-info-blue">
+                <span class="adm-site-info-label">📅 Année</span>
+                <span class="adm-site-info-val">{{ site.anneeCivile }}</span>
+              </div>
+            </div>
+            <div class="adm-site-card-actions">
+              <button class="adm-site-action-edit" type="button" (click)="edit(site)">✏️ Modifier</button>
+              <button class="adm-site-action-delete" type="button" (click)="remove(site.id)">🗑️ Supprimer</button>
+            </div>
+          </div>
+        } @empty {
+          <div class="adm-site-empty md:col-span-2">
+            <span>🏟️</span>
+            <p>Aucun site configuré</p>
+          </div>
         }
       </div>
     </section>
+
+    <style>
+      .adm-site-header {
+        background: linear-gradient(135deg, #2e1065 0%, #5b21b6 50%, #7c3aed 100%);
+        padding: 1.5rem 2rem;
+        box-shadow: 0 4px 16px rgba(91,33,182,0.3);
+      }
+      .adm-site-header-inner {
+        display: flex; align-items: center; justify-content: space-between;
+        max-width: 1200px; margin: 0 auto; gap: 1rem; flex-wrap: wrap;
+      }
+      .adm-site-title-block { display: flex; align-items: center; gap: 1rem; }
+      .adm-site-icon { font-size: 2.5rem; }
+      .adm-site-title { font-size: 1.6rem; font-weight: 800; color: #fff; margin: 0; }
+      .adm-site-sub { color: rgba(255,255,255,0.75); font-size: 0.85rem; margin: 0; }
+      .adm-site-back-btn {
+        background: rgba(255,255,255,0.15); color: #fff; border: 2px solid rgba(255,255,255,0.35);
+        border-radius: 9999px; padding: 0.45rem 1.1rem; font-weight: 700;
+        font-size: 0.85rem; text-decoration: none; transition: background 0.15s; white-space: nowrap;
+      }
+      .adm-site-back-btn:hover { background: rgba(255,255,255,0.25); }
+
+      .adm-site-form-card {
+        background: #fff; border-radius: 1.25rem;
+        box-shadow: 0 4px 20px rgba(91,33,182,0.1);
+        padding: 1.5rem; border-left: 5px solid #7c3aed;
+      }
+      .adm-site-form-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; font-size: 1.5rem; }
+      .adm-site-form-title { font-size: 1.2rem; font-weight: 700; color: #2e1065; margin: 0; }
+
+      .adm-site-btn-primary {
+        background: linear-gradient(135deg, #5b21b6, #7c3aed); color: #fff; border: none;
+        border-radius: 0.6rem; padding: 0.65rem 1.5rem; font-weight: 700; cursor: pointer;
+        box-shadow: 0 3px 10px rgba(91,33,182,0.3); transition: transform 0.15s;
+      }
+      .adm-site-btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+      .adm-site-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      .adm-site-btn-secondary {
+        background: #f5f3ff; color: #5b21b6; border: 1.5px solid #ddd6fe;
+        border-radius: 0.6rem; padding: 0.65rem 1.25rem; font-weight: 600; cursor: pointer;
+        transition: background 0.15s;
+      }
+      .adm-site-btn-secondary:hover { background: #ede9fe; }
+
+      .adm-site-card {
+        background: #fff; border-radius: 1.25rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+        overflow: hidden; transition: transform 0.15s, box-shadow 0.15s;
+        border-top: 4px solid #7c3aed;
+      }
+      .adm-site-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.12); }
+      .adm-site-card-header { padding: 1rem 1.25rem 0.5rem; }
+      .adm-site-card-name { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+      .adm-site-card-addr { font-size: 0.85rem; color: #64748b; margin-top: 0.15rem; }
+
+      .adm-site-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; padding: 0.5rem 1.25rem 0.75rem; }
+      .adm-site-info-item {
+        border-radius: 0.6rem; padding: 0.5rem 0.75rem;
+        display: flex; flex-direction: column; gap: 0.1rem;
+      }
+      .adm-site-info-label { font-size: 0.72rem; font-weight: 600; opacity: 0.75; }
+      .adm-site-info-val { font-size: 0.9rem; font-weight: 700; }
+      .adm-site-info-teal   { background: #f0fdfa; color: #0f766e; }
+      .adm-site-info-violet { background: #f5f3ff; color: #5b21b6; }
+      .adm-site-info-amber  { background: #fffbeb; color: #b45309; }
+      .adm-site-info-blue   { background: #eff6ff; color: #1d4ed8; }
+
+      .adm-site-card-actions {
+        display: flex; gap: 0.75rem; padding: 0.75rem 1.25rem;
+        border-top: 1px solid #f1f5f9; flex-wrap: wrap;
+      }
+      .adm-site-action-edit {
+        flex: 1; min-width: 100px; background: #eff6ff; color: #1d4ed8;
+        border: 1.5px solid #bfdbfe; border-radius: 0.5rem; padding: 0.45rem 0.75rem;
+        font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+      }
+      .adm-site-action-edit:hover { background: #dbeafe; }
+      .adm-site-action-delete {
+        flex: 1; min-width: 100px; background: #fef2f2; color: #dc2626;
+        border: 1.5px solid #fecaca; border-radius: 0.5rem; padding: 0.45rem 0.75rem;
+        font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+      }
+      .adm-site-action-delete:hover { background: #fee2e2; }
+
+      .adm-site-empty {
+        text-align: center; padding: 3rem; color: #94a3b8;
+        display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 1.1rem;
+      }
+      .adm-site-empty span { font-size: 3rem; }
+    </style>
   `
 })
 export class AdminSitesPage {

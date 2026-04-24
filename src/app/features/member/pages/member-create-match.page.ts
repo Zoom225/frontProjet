@@ -63,17 +63,19 @@ const createMinBookingDateValidator = (getMinDate: () => string): ValidatorFn =>
     MatProgressSpinnerModule
   ],
   template: `
-    <section class="page-shell max-w-5xl">
+    <section class="page-shell max-w-6xl">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="title-gradient text-2xl font-semibold">Creer un match</h1>
-          <p class="text-sm text-slate-600">Public ou prive, selon les regles du backend.</p>
-          <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-                [class]="form.controls.typeMatch.value === 'PRIVE' ? 'bg-violet-100 text-violet-800' : 'bg-emerald-100 text-emerald-800'">
+          <h1 class="title-gradient ds-section-title">Creer un match</h1>
+          <p class="ds-subtitle">Public ou prive, selon les regles du backend.</p>
+          <span class="ds-badge"
+                [class]="form.controls.typeMatch.value === 'PRIVE' ? 'ds-badge-info' : 'ds-badge-success'">
             Mode creation : {{ form.controls.typeMatch.value }}
           </span>
         </div>
-        <a mat-stroked-button routerLink="/member/matches">Retour aux matchs publics</a>
+        <div class="toolbar-actions">
+          <a mat-stroked-button routerLink="/member/matches">Retour aux matchs publics</a>
+        </div>
       </div>
 
       <mat-card class="card-soft panel-gradient">
@@ -120,7 +122,7 @@ const createMinBookingDateValidator = (getMinDate: () => string): ValidatorFn =>
             </mat-form-field>
 
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:col-span-2">
-              <p><strong>Rappel:</strong></p>
+              <p class="font-semibold text-slate-800">Rappel</p>
               <ul class="ml-4 list-disc space-y-1">
                 <li>GLOBAL: au moins 3 semaines a l'avance</li>
                 <li>SITE: au moins 2 semaines a l'avance sur son site</li>
@@ -165,7 +167,7 @@ const createMinBookingDateValidator = (getMinDate: () => string): ValidatorFn =>
               <p class="status-error md:col-span-2">{{ errorMessage() }}</p>
             }
 
-            <div class="flex items-center gap-3 md:col-span-2">
+            <div class="toolbar-actions justify-start md:col-span-2">
               <button mat-flat-button color="primary" type="submit" [disabled]="loading() || form.invalid || !terrains().length">
                 Creer le match
               </button>

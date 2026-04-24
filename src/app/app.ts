@@ -1,5 +1,5 @@
-import { CommonModule, DOCUMENT } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterModule } from '@angular/router';
@@ -10,155 +10,222 @@ import { MemberSessionService } from './core/auth/member-session.service';
   selector: 'app-root',
   imports: [CommonModule, RouterModule, MatToolbarModule, MatButtonModule],
   template: `
-    <mat-toolbar class="app-toolbar toolbar-blur" color="primary">
-      <div class="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-2 py-1">
-        <a routerLink="/" class="inline-flex items-center gap-2 text-base font-semibold text-white no-underline sm:text-lg">
-          <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20">P</span>
-          <span>PadelPlay</span>
+    <header class="app-header">
+      <div class="app-header-inner">
+        <!-- Logo -->
+        <a routerLink="/" class="app-logo">
+          <span class="app-logo-badge">🎾</span>
+          <span class="app-logo-text">PadelPlay</span>
         </a>
 
-        <nav class="hidden items-center gap-1 md:flex">
-          <a mat-button routerLink="/" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Accueil</a>
-          <a mat-button routerLink="/member" routerLinkActive="active-link">Membre</a>
-          <a mat-button routerLink="/admin" routerLinkActive="active-link">Admin</a>
+        <!-- Nav principale -->
+        <nav class="app-nav">
+          <a routerLink="/" routerLinkActive="nav-active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">Accueil</a>
+
+          @if (!adminSession.isAuthenticated()) {
+            <a routerLink="/admin/login" class="nav-link">Admin</a>
+          }
+
+          @if (!memberSession.isAuthenticated()) {
+            <a routerLink="/member" class="nav-btn-outline">Espace membre</a>
+          }
 
           @if (memberSession.isAuthenticated()) {
-            <a mat-button routerLink="/member/profile" routerLinkActive="active-link">Profil</a>
-            <a mat-button routerLink="/member/matches" routerLinkActive="active-link">Matchs</a>
-            <a mat-flat-button color="accent" routerLink="/member/matches/new" [queryParams]="{type:'PUBLIC'}" routerLinkActive="active-link"
-               style="background: linear-gradient(135deg,#15803d,#16a34a); color:#fff; font-weight:700; border-radius:8px; margin:0 2px;">
-              🎾 Match PUBLIC
-            </a>
-            <a mat-flat-button routerLink="/member/matches/new" [queryParams]="{type:'PRIVE'}" routerLinkActive="active-link"
-               style="background: linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; font-weight:700; border-radius:8px; margin:0 2px;">
-              🔒 Match PRIVÉ
-            </a>
-            <a mat-button routerLink="/member/reservations" routerLinkActive="active-link">Reservations</a>
-            <a mat-button routerLink="/member/payments" routerLinkActive="active-link">Paiements</a>
-            <button mat-stroked-button type="button" (click)="logoutMember()">Logout membre</button>
-          } @else {
-            <a mat-stroked-button routerLink="/member">Espace membre</a>
+            <div class="nav-divider"></div>
+            <a routerLink="/member/profile" routerLinkActive="nav-active" class="nav-link">Profil</a>
+            <a routerLink="/member/matches" routerLinkActive="nav-active" class="nav-link">Matchs</a>
+            <a routerLink="/member/reservations" routerLinkActive="nav-active" class="nav-link">Réservations</a>
+            <a routerLink="/member/payments" routerLinkActive="nav-active" class="nav-link">Paiements</a>
+            <div class="nav-divider"></div>
+            <a routerLink="/member/matches/new" class="nav-btn-create">➕ Créer un match</a>
+            <a routerLink="/member/matches/new" [queryParams]="{type:'PUBLIC'}" class="nav-btn-green">🎾 Match PUBLIC</a>
+            <a routerLink="/member/matches/new" [queryParams]="{type:'PRIVE'}" class="nav-btn-purple">🔒 Match PRIVÉ</a>
+            <div class="nav-divider"></div>
+            <button class="nav-btn-logout" type="button" (click)="logoutMember()">Déconnexion</button>
           }
 
           @if (adminSession.isAuthenticated()) {
-            <a mat-button routerLink="/admin/members" routerLinkActive="active-link">Membres admin</a>
-            <a mat-button routerLink="/admin/matches" routerLinkActive="active-link">Matchs admin</a>
-            <a mat-button routerLink="/admin/sites" routerLinkActive="active-link">Sites</a>
-            <a mat-button routerLink="/admin/terrains" routerLinkActive="active-link">Terrains</a>
-            <a mat-button routerLink="/admin/fermetures" routerLinkActive="active-link">Fermetures</a>
-            <button mat-stroked-button type="button" (click)="logoutAdmin()">Logout admin</button>
-          } @else {
-            <a mat-stroked-button routerLink="/admin/login">Login admin</a>
+            <div class="nav-divider"></div>
+            <a routerLink="/admin" routerLinkActive="nav-active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">Dashboard</a>
+            <a routerLink="/admin/members" routerLinkActive="nav-active" class="nav-link">Membres</a>
+            <a routerLink="/admin/matches" routerLinkActive="nav-active" class="nav-link">Matchs</a>
+            <a routerLink="/admin/sites" routerLinkActive="nav-active" class="nav-link">Sites</a>
+            <a routerLink="/admin/terrains" routerLinkActive="nav-active" class="nav-link">Terrains</a>
+            <a routerLink="/admin/fermetures" routerLinkActive="nav-active" class="nav-link">Fermetures</a>
+            <div class="nav-divider"></div>
+            <button class="nav-btn-logout" type="button" (click)="logoutAdmin()">Déconnexion</button>
           }
-
-          <button mat-stroked-button type="button" (click)="toggleTheme()">
-            {{ isOceanTheme() ? 'Theme classique' : 'Theme ocean' }}
-          </button>
         </nav>
-
-        <button mat-stroked-button type="button" class="md:hidden" (click)="toggleMobileMenu()">
-          {{ mobileMenuOpen() ? 'Fermer' : 'Menu' }}
-        </button>
       </div>
+    </header>
 
-      @if (mobileMenuOpen()) {
-        <div class="mx-auto mt-2 w-full max-w-7xl rounded-xl bg-white/10 p-2 backdrop-blur-sm md:hidden">
-          <nav class="grid gap-1">
-            <a mat-button routerLink="/" (click)="closeMobileMenu()">Accueil</a>
-            <a mat-button routerLink="/member" (click)="closeMobileMenu()">Membre</a>
-            <a mat-button routerLink="/admin" (click)="closeMobileMenu()">Admin</a>
-
-            @if (memberSession.isAuthenticated()) {
-              <a mat-button routerLink="/member/profile" (click)="closeMobileMenu()">Profil membre</a>
-              <a mat-button routerLink="/member/matches" (click)="closeMobileMenu()">Matchs</a>
-              <a mat-button routerLink="/member/matches/new" [queryParams]="{type:'PUBLIC'}" (click)="closeMobileMenu()"
-                 style="color:#15803d; font-weight:700;">🎾 Créer match PUBLIC</a>
-              <a mat-button routerLink="/member/matches/new" [queryParams]="{type:'PRIVE'}" (click)="closeMobileMenu()"
-                 style="color:#7c3aed; font-weight:700;">🔒 Créer match PRIVÉ</a>
-              <a mat-button routerLink="/member/reservations" (click)="closeMobileMenu()">Reservations</a>
-              <a mat-button routerLink="/member/payments" (click)="closeMobileMenu()">Paiements</a>
-            }
-
-            @if (adminSession.isAuthenticated()) {
-              <a mat-button routerLink="/admin/members" (click)="closeMobileMenu()">Membres admin</a>
-              <a mat-button routerLink="/admin/matches" (click)="closeMobileMenu()">Matchs admin</a>
-              <a mat-button routerLink="/admin/sites" (click)="closeMobileMenu()">Sites</a>
-              <a mat-button routerLink="/admin/terrains" (click)="closeMobileMenu()">Terrains</a>
-              <a mat-button routerLink="/admin/fermetures" (click)="closeMobileMenu()">Fermetures</a>
-            }
-
-            <button mat-stroked-button type="button" (click)="toggleTheme()">
-              {{ isOceanTheme() ? 'Theme classique' : 'Theme ocean' }}
-            </button>
-          </nav>
-        </div>
-      }
-    </mat-toolbar>
-
-    <main class="min-h-[calc(100vh-64px)] bg-gradient-to-b from-slate-50 to-slate-100/70">
+    <main class="app-main-shell">
       <router-outlet></router-outlet>
     </main>
   `,
-  styles: [
-    `
-      .app-toolbar {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-      }
+  styles: [`
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0369a1 100%);
+      box-shadow: 0 2px 16px rgba(3,105,161,0.25);
+    }
 
-      .active-link {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-      }
-    `
-  ]
+    .app-header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0.6rem 1.5rem;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .app-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      margin-right: 0.5rem;
+      flex-shrink: 0;
+    }
+    .app-logo-badge {
+      font-size: 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+    }
+    .app-logo-text {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+
+    .app-nav {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      flex: 1;
+    }
+
+    .nav-link {
+      color: rgba(255,255,255,0.85);
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-link:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-active { background: rgba(255,255,255,0.2) !important; color: #fff !important; font-weight: 700; }
+
+    .nav-divider {
+      width: 1px;
+      height: 1.5rem;
+      background: rgba(255,255,255,0.25);
+      margin: 0 0.25rem;
+      flex-shrink: 0;
+    }
+
+    .nav-btn-outline {
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.5);
+      border-radius: 9999px;
+      padding: 0.35rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .nav-btn-outline:hover { background: rgba(255,255,255,0.15); }
+
+    .nav-btn-green {
+      background: linear-gradient(135deg, #15803d, #16a34a);
+      color: #fff;
+      border: none;
+      border-radius: 9999px;
+      padding: 0.4rem 1rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(21,128,61,0.35);
+      transition: transform 0.15s;
+    }
+    .nav-btn-green:hover { transform: translateY(-1px); }
+
+    .nav-btn-create {
+      background: linear-gradient(135deg, #ea580c, #f97316);
+      color: #fff;
+      border: none;
+      border-radius: 9999px;
+      padding: 0.4rem 1rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(234,88,12,0.35);
+      transition: transform 0.15s;
+    }
+    .nav-btn-create:hover { transform: translateY(-1px); }
+
+    .nav-btn-purple {
+      background: linear-gradient(135deg, #6d28d9, #7c3aed);
+      color: #fff;
+      border: none;
+      border-radius: 9999px;
+      padding: 0.4rem 1rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(109,40,217,0.35);
+      transition: transform 0.15s;
+    }
+    .nav-btn-purple:hover { transform: translateY(-1px); }
+
+    .nav-btn-logout {
+      background: rgba(239,68,68,0.15);
+      color: #fca5a5;
+      border: 1.5px solid rgba(239,68,68,0.35);
+      border-radius: 9999px;
+      padding: 0.35rem 1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .nav-btn-logout:hover { background: rgba(239,68,68,0.25); }
+
+    .app-main-shell {
+      min-height: calc(100vh - 58px);
+      background: linear-gradient(180deg, #f0f9ff 0%, #f8fafc 100%);
+    }
+  `]
 })
 export class App {
-  private static readonly THEME_KEY = 'padel_theme';
-
   readonly adminSession = inject(AdminSessionService);
   readonly memberSession = inject(MemberSessionService);
-  readonly mobileMenuOpen = signal(false);
-  readonly isOceanTheme = signal(false);
   private readonly router = inject(Router);
-  private readonly document = inject(DOCUMENT);
-
-  constructor() {
-    const storedTheme = localStorage.getItem(App.THEME_KEY);
-    const isOcean = storedTheme === 'ocean';
-    this.isOceanTheme.set(isOcean);
-    this.applyTheme(isOcean);
-  }
-
-  toggleMobileMenu(): void {
-    this.mobileMenuOpen.update((value) => !value);
-  }
-
-  closeMobileMenu(): void {
-    this.mobileMenuOpen.set(false);
-  }
-
-  toggleTheme(): void {
-    const next = !this.isOceanTheme();
-    this.isOceanTheme.set(next);
-    this.applyTheme(next);
-    localStorage.setItem(App.THEME_KEY, next ? 'ocean' : 'classic');
-  }
-
-  private applyTheme(isOcean: boolean): void {
-    this.document.body.classList.toggle('ocean-theme', isOcean);
-  }
 
   logoutAdmin(): void {
     this.adminSession.clearSession();
-    this.closeMobileMenu();
     this.router.navigateByUrl('/admin/login');
   }
 
   logoutMember(): void {
     this.memberSession.clearMember();
-    this.closeMobileMenu();
     this.router.navigateByUrl('/member');
   }
 }

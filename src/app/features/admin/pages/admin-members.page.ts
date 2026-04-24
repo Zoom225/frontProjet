@@ -38,8 +38,8 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
         <div class="adm-header-left">
           <span class="adm-icon">🎾</span>
           <div>
-            <h1 class="adm-title">Gestion des membres</h1>
-            <p class="adm-sub">Création, modification et suppression des membres du club</p>
+            <h1 class="adm-title ds-section-title">Gestion des membres</h1>
+            <p class="adm-sub ds-subtitle">Création, modification et suppression des membres du club</p>
           </div>
         </div>
         <a mat-stroked-button routerLink="/admin" class="adm-back-btn">← Tableau de bord</a>
@@ -60,7 +60,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
             <mat-label>Matricule</mat-label>
             <input matInput formControlName="matricule" [readonly]="editingId() !== null"
                    placeholder="G1234 / S12345 / L12345"
-                   style="text-transform:uppercase; font-weight:600; letter-spacing:0.08em;" />
+                   class="uppercase font-semibold tracking-wider" />
             @if (!editingId()) {
               <mat-hint>GLOBAL: G+4ch · SITE: S+5ch · LIBRE: L+5ch</mat-hint>
             }
@@ -101,10 +101,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
           </mat-form-field>
 
           @if (message()) {
-            <div class="adm-success md:col-span-2">✅ {{ message() }}</div>
+            <div class="status-success md:col-span-2">✅ {{ message() }}</div>
           }
           @if (errorMessage()) {
-            <div class="adm-error md:col-span-2">❌ {{ errorMessage() }}</div>
+            <div class="status-error md:col-span-2">❌ {{ errorMessage() }}</div>
           }
 
           <div class="flex items-center gap-3 md:col-span-2">
@@ -170,23 +170,23 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                 <div class="adm-member-name">{{ member.prenom }} {{ member.nom }}</div>
                 <div class="adm-member-matricule">{{ member.matricule }}</div>
               </div>
-              <span class="adm-member-badge" [class]="'adm-badge-' + member.typeMembre.toLowerCase()">
+              <span class="ds-badge" [class]="typeBadgeClass(member.typeMembre)">
                 {{ member.typeMembre }}
               </span>
             </div>
 
-            <div class="adm-member-details">
-              <div class="adm-detail-row">
-                <span>📧</span>
-                <span>{{ member.email || 'Non renseigné' }}</span>
+            <div class="adm-member-details ds-data-list">
+              <div class="adm-detail-row ds-data-row">
+                <span class="ds-data-key">Email</span>
+                <span class="ds-data-value">{{ member.email || 'Non renseigné' }}</span>
               </div>
-              <div class="adm-detail-row">
-                <span>📍</span>
-                <span>{{ member.siteNom || 'Tous les sites' }}</span>
+              <div class="adm-detail-row ds-data-row">
+                <span class="ds-data-key">Site</span>
+                <span class="ds-data-value">{{ member.siteNom || 'Tous les sites' }}</span>
               </div>
-              <div class="adm-detail-row">
-                <span>💰</span>
-                <span>{{ member.solde }} EUR</span>
+              <div class="adm-detail-row ds-data-row">
+                <span class="ds-data-key">Solde</span>
+                <span class="ds-data-value">{{ member.solde }} EUR</span>
               </div>
             </div>
 
@@ -359,6 +359,16 @@ export class AdminMembersPage {
 
   countByType(type: string): number {
     return this.filteredMembers().filter(m => m.typeMembre === type).length;
+  }
+
+  typeBadgeClass(type: TypeMembre): string {
+    if (type === 'GLOBAL') {
+      return 'ds-badge-info';
+    }
+    if (type === 'SITE') {
+      return 'ds-badge-success';
+    }
+    return 'ds-badge-warning';
   }
 
   readonly form = new FormGroup({
