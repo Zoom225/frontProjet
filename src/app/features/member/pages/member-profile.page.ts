@@ -22,11 +22,11 @@ import { MembreResponse } from '../../../shared/models/membre.model';
     MatChipsModule
   ],
   template: `
-    <section class="page-shell max-w-5xl">
+    <section class="page-shell max-w-6xl">
       <mat-card class="card-soft">
         <mat-card-header>
-          <mat-card-title>Mon profil membre</mat-card-title>
-          <mat-card-subtitle>Informations rechargees depuis le backend</mat-card-subtitle>
+          <mat-card-title class="title-gradient ds-section-title">Mon profil membre</mat-card-title>
+          <mat-card-subtitle class="ds-subtitle">Informations rechargees depuis le backend</mat-card-subtitle>
         </mat-card-header>
 
         <mat-card-content>
@@ -36,17 +36,17 @@ import { MembreResponse } from '../../../shared/models/membre.model';
             </div>
           } @else if (profile()) {
             <div class="grid gap-4 md:grid-cols-2">
-              <div>
-                <p><strong>Nom:</strong> {{ profile()!.nom }}</p>
-                <p><strong>Prenom:</strong> {{ profile()!.prenom }}</p>
-                <p><strong>Email:</strong> {{ profile()!.email || 'Non renseigne' }}</p>
-                <p><strong>Matricule:</strong> {{ profile()!.matricule }}</p>
+              <div class="ds-data-list">
+                <div class="ds-data-row"><span class="ds-data-key">Nom</span><span class="ds-data-value">{{ profile()!.nom }}</span></div>
+                <div class="ds-data-row"><span class="ds-data-key">Prenom</span><span class="ds-data-value">{{ profile()!.prenom }}</span></div>
+                <div class="ds-data-row"><span class="ds-data-key">Email</span><span class="ds-data-value">{{ profile()!.email || 'Non renseigne' }}</span></div>
+                <div class="ds-data-row"><span class="ds-data-key">Matricule</span><span class="ds-data-value">{{ profile()!.matricule }}</span></div>
               </div>
 
-              <div>
-                <p><strong>Type:</strong> {{ profile()!.typeMembre }}</p>
-                <p><strong>Site:</strong> {{ profile()!.siteNom || 'Tous les sites' }}</p>
-                <p><strong>Solde:</strong> {{ profile()!.solde }} EUR</p>
+              <div class="ds-data-list">
+                <div class="ds-data-row"><span class="ds-data-key">Type</span><span class="ds-data-value"><span class="ds-badge" [class]="memberTypeBadgeClass(profile()!.typeMembre)">{{ profile()!.typeMembre }}</span></span></div>
+                <div class="ds-data-row"><span class="ds-data-key">Site</span><span class="ds-data-value">{{ profile()!.siteNom || 'Tous les sites' }}</span></div>
+                <div class="ds-data-row"><span class="ds-data-key">Solde</span><span class="ds-data-value">{{ profile()!.solde }} EUR</span></div>
               </div>
             </div>
 
@@ -68,43 +68,33 @@ import { MembreResponse } from '../../../shared/models/membre.model';
 
           <!-- Bloc creation rapide de match -->
           <div class="mt-6">
-            <div class="mb-3 flex items-center gap-2">
-              <span style="font-size:1.4rem;">🎾</span>
-              <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#14532d;">Créer un match rapidement</h3>
+              <div class="mb-3 flex items-center gap-2">
+                <span class="text-xl">🎾</span>
+                <h3 class="m-0 text-lg font-bold text-slate-800">Creer un match rapidement</h3>
             </div>
             <div class="grid gap-3 md:grid-cols-2">
-              <!-- Match PUBLIC -->
               <a [routerLink]="['/member/matches/new']" [queryParams]="{type:'PUBLIC'}"
-                 style="display:block; text-decoration:none; border-radius:1rem; padding:1.25rem 1.5rem;
-                        background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-                        border: 2px solid #4ade80; transition: transform 0.15s, box-shadow 0.15s;"
-                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(34,197,94,0.25)'"
-                 onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
-                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
-                  <span style="font-size:2rem;">🌍</span>
+                 class="card-soft block rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 p-5 no-underline transition hover:-translate-y-0.5 hover:shadow-md">
+                <div class="mb-2 flex items-center gap-3">
+                  <span class="text-3xl">🌍</span>
                   <div>
-                    <div style="font-size:0.7rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#15803d;">Match ouvert</div>
-                    <div style="font-size:1.15rem; font-weight:800; color:#14532d;">Créer match PUBLIC</div>
+                    <div class="text-xs font-bold uppercase tracking-wide text-emerald-700">Match ouvert</div>
+                    <div class="text-lg font-extrabold text-emerald-900">Creer match PUBLIC</div>
                   </div>
                 </div>
-                <p style="margin:0; font-size:0.85rem; color:#166534;">N'importe quel membre peut rejoindre · 15 €/joueur · 4 joueurs requis</p>
+                <p class="m-0 text-sm text-emerald-800">N'importe quel membre peut rejoindre · 15 EUR/joueur · 4 joueurs requis</p>
               </a>
 
-              <!-- Match PRIVÉ -->
               <a [routerLink]="['/member/matches/new']" [queryParams]="{type:'PRIVE'}"
-                 style="display:block; text-decoration:none; border-radius:1rem; padding:1.25rem 1.5rem;
-                        background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-                        border: 2px solid #a78bfa; transition: transform 0.15s, box-shadow 0.15s;"
-                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(139,92,246,0.25)'"
-                 onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
-                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
-                  <span style="font-size:2rem;">🔒</span>
+                 class="card-soft block rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-purple-50 p-5 no-underline transition hover:-translate-y-0.5 hover:shadow-md">
+                <div class="mb-2 flex items-center gap-3">
+                  <span class="text-3xl">🔒</span>
                   <div>
-                    <div style="font-size:0.7rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c3aed;">Match sur invitation</div>
-                    <div style="font-size:1.15rem; font-weight:800; color:#4c1d95;">Créer match PRIVÉ</div>
+                    <div class="text-xs font-bold uppercase tracking-wide text-violet-700">Match sur invitation</div>
+                    <div class="text-lg font-extrabold text-violet-900">Creer match PRIVE</div>
                   </div>
                 </div>
-                <p style="margin:0; font-size:0.85rem; color:#5b21b6;">Tu invites 3 joueurs par matricule · Converti en public si incomplet la veille</p>
+                <p class="m-0 text-sm text-violet-800">Tu invites 3 joueurs par matricule · Converti en public si incomplet la veille</p>
               </a>
             </div>
           </div>
@@ -128,7 +118,7 @@ import { MembreResponse } from '../../../shared/models/membre.model';
             </a>
           </div>
 
-          <div class="mt-6 flex flex-wrap gap-3">
+          <div class="toolbar-actions mt-6 justify-start">
             <button mat-flat-button color="primary" type="button" (click)="reload()">Rafraichir</button>
             <a mat-stroked-button routerLink="/member/matches">Matchs publics</a>
             <a mat-stroked-button routerLink="/member/reservations">Mes reservations</a>
@@ -188,6 +178,16 @@ export class MemberProfilePage {
   logout(): void {
     this.memberSession.clearMember();
     this.router.navigateByUrl('/member');
+  }
+
+  memberTypeBadgeClass(type: MembreResponse['typeMembre']): string {
+    if (type === 'GLOBAL') {
+      return 'ds-badge-info';
+    }
+    if (type === 'SITE') {
+      return 'ds-badge-success';
+    }
+    return 'ds-badge-warning';
   }
 }
 

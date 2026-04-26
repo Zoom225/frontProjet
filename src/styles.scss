@@ -40,6 +40,9 @@ body {
   height: 100%;
   position: relative;
   overflow-x: hidden;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   --app-bg:
     radial-gradient(circle at 8% -5%, rgba(14, 165, 233, 0.26) 0%, rgba(14, 165, 233, 0) 36%),
     radial-gradient(circle at 92% 0%, rgba(99, 102, 241, 0.22) 0%, rgba(99, 102, 241, 0) 34%),
@@ -111,12 +114,29 @@ app-root {
 
 @layer components {
   .page-shell {
-    @apply mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8;
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-10;
+  }
+
+  .app-main-shell {
+    @apply min-h-[calc(100vh-64px)] pb-10;
+  }
+
+  .toolbar-actions {
+    @apply flex flex-wrap items-center justify-end gap-3;
+  }
+
+  .toolbar-actions .mat-mdc-button-base {
+    @apply whitespace-nowrap;
   }
 
   .card-soft {
     @apply rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm backdrop-blur transition;
     background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 252, 0.9));
+  }
+
+  .card-soft:hover {
+    @apply shadow-md;
+    transform: translateY(-1px);
   }
 
   .kpi-card {
@@ -143,8 +163,84 @@ app-root {
     @apply border-b border-white/20 bg-gradient-to-r from-cyan-700 via-sky-700 to-blue-700 backdrop-blur-md;
   }
 
+  .quick-action {
+    @apply rounded-xl px-3 font-semibold text-white shadow-sm;
+  }
+
+  .quick-action-public {
+    @apply bg-gradient-to-r from-emerald-600 to-green-600;
+  }
+
+  .quick-action-private {
+    @apply bg-gradient-to-r from-violet-600 to-purple-700;
+  }
+
   .responsive-grid-2 {
     @apply grid gap-4 md:grid-cols-2;
+  }
+
+  .ds-section-title {
+    @apply text-2xl font-semibold text-slate-900;
+  }
+
+  .ds-subtitle {
+    @apply text-sm text-slate-600;
+  }
+
+  .ds-btn {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-semibold transition;
+  }
+
+  .ds-btn-primary {
+    @apply ds-btn bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-sm hover:shadow;
+  }
+
+  .ds-btn-secondary {
+    @apply ds-btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  .ds-btn-danger {
+    @apply ds-btn border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100;
+  }
+
+  .ds-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .ds-badge-info {
+    @apply ds-badge bg-sky-100 text-sky-700;
+  }
+
+  .ds-badge-success {
+    @apply ds-badge bg-emerald-100 text-emerald-700;
+  }
+
+  .ds-badge-warning {
+    @apply ds-badge bg-amber-100 text-amber-800;
+  }
+
+  .ds-badge-danger {
+    @apply ds-badge bg-rose-100 text-rose-700;
+  }
+
+  .ds-badge-neutral {
+    @apply ds-badge bg-slate-100 text-slate-700;
+  }
+
+  .ds-data-list {
+    @apply grid gap-2;
+  }
+
+  .ds-data-row {
+    @apply flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2;
+  }
+
+  .ds-data-key {
+    @apply text-sm font-medium text-slate-600;
+  }
+
+  .ds-data-value {
+    @apply text-sm font-semibold text-slate-800 text-right;
   }
 }
 
@@ -223,5 +319,23 @@ body.ocean-theme .status-error {
 
 .mat-mdc-form-field {
   width: 100%;
+}
+
+.mat-mdc-card-header {
+  align-items: flex-start;
+}
+
+.mat-mdc-card-actions {
+  flex-wrap: wrap;
+  gap: 0.75rem !important;
+  padding: 0.75rem 1rem 1rem !important;
+}
+
+.mat-mdc-card-content {
+  padding-bottom: 0.5rem !important;
+}
+
+.mat-mdc-card-header {
+  padding-bottom: 0.25rem !important;
 }
 /* You can add global styles to this file, and also import other style files */

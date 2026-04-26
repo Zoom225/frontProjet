@@ -30,64 +30,166 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     MatProgressSpinnerModule
   ],
   template: `
-    <section class="page-shell">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-semibold text-slate-900">Gestion des terrains</h1>
-          <p class="text-sm text-slate-600">CRUD des terrains par site.</p>
+    <!-- En-tête terrains -->
+    <div class="adm-ter-header">
+      <div class="adm-ter-header-inner">
+        <div class="adm-ter-title-block">
+          <span class="adm-ter-icon">📍</span>
+          <div>
+            <h1 class="adm-ter-title">Gestion des terrains</h1>
+            <p class="adm-ter-sub">Création et gestion des terrains par site</p>
+          </div>
         </div>
-        <a mat-stroked-button routerLink="/admin">Retour dashboard</a>
+        <a routerLink="/admin" class="adm-ter-back-btn">← Tableau de bord</a>
+      </div>
+    </div>
+
+    <section class="page-shell">
+      <!-- Formulaire -->
+      <div class="adm-ter-form-card">
+        <div class="adm-ter-form-header">
+          <span>{{ editingId() ? '✏️' : '➕' }}</span>
+          <h2 class="adm-ter-form-title">{{ editingId() ? 'Modifier un terrain' : 'Nouveau terrain' }}</h2>
+        </div>
+        <form [formGroup]="form" class="grid gap-4 pt-4 md:grid-cols-2" (ngSubmit)="save()">
+          <mat-form-field appearance="outline">
+            <mat-label>Nom du terrain</mat-label>
+            <input matInput formControlName="nom" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Site</mat-label>
+            <mat-select formControlName="siteId" [disabled]="adminSession.isSiteAdmin()">
+              @for (site of sites(); track site.id) {
+                <mat-option [value]="site.id">🏟️ {{ site.nom }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          @if (message()) {
+            <div class="status-success md:col-span-2">✅ {{ message() }}</div>
+          }
+          @if (errorMessage()) {
+            <div class="status-error md:col-span-2">❌ {{ errorMessage() }}</div>
+          }
+
+          <div class="flex flex-wrap items-center gap-3 md:col-span-2">
+            <button class="adm-ter-btn-primary" type="submit" [disabled]="loading() || form.invalid">
+              {{ editingId() ? '💾 Enregistrer' : '➕ Créer le terrain' }}
+            </button>
+            <button class="adm-ter-btn-secondary" type="button" (click)="resetForm()">🔄 Réinitialiser</button>
+            @if (loading()) { <mat-spinner diameter="24"></mat-spinner> }
+          </div>
+        </form>
       </div>
 
-      <mat-card class="card-soft">
-        <mat-card-header><mat-card-title>{{ editingId() ? 'Modifier un terrain' : 'Nouveau terrain' }}</mat-card-title></mat-card-header>
-        <mat-card-content>
-          <form [formGroup]="form" class="grid gap-4 pt-4 md:grid-cols-2" (ngSubmit)="save()">
-            <mat-form-field appearance="outline">
-              <mat-label>Nom du terrain</mat-label>
-              <input matInput formControlName="nom" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Site</mat-label>
-              <mat-select formControlName="siteId" [disabled]="adminSession.isSiteAdmin()">
-                @for (site of sites(); track site.id) {
-                  <mat-option [value]="site.id">{{ site.nom }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            @if (message()) {
-              <p class="status-success md:col-span-2">{{ message() }}</p>
-            }
-            @if (errorMessage()) {
-              <p class="status-error md:col-span-2">{{ errorMessage() }}</p>
-            }
-
-            <div class="flex items-center gap-3 md:col-span-2">
-              <button mat-flat-button color="primary" type="submit" [disabled]="loading() || form.invalid">Enregistrer</button>
-              <button mat-stroked-button type="button" (click)="resetForm()">Reinitialiser</button>
-              @if (loading()) { <mat-spinner diameter="24"></mat-spinner> }
-            </div>
-          </form>
-        </mat-card-content>
-      </mat-card>
-
-      <div class="grid gap-4 md:grid-cols-2">
+      <!-- Liste des terrains -->
+      <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         @for (terrain of filteredTerrains(); track terrain.id) {
-          <mat-card class="card-soft">
-            <mat-card-header>
-              <mat-card-title>{{ terrain.nom }}</mat-card-title>
-              <mat-card-subtitle>{{ terrain.siteNom }}</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-actions>
-              <button mat-stroked-button type="button" (click)="edit(terrain)">Modifier</button>
-              <button mat-stroked-button color="warn" type="button" (click)="remove(terrain.id)">Supprimer</button>
-            </mat-card-actions>
-          </mat-card>
+          <div class="adm-ter-card">
+            <div class="adm-ter-card-header">
+              <span class="adm-ter-card-num">#{{ terrain.id }}</span>
+              <div class="adm-ter-card-name">📍 {{ terrain.nom }}</div>
+              <div class="adm-ter-card-site">🏟️ {{ terrain.siteNom }}</div>
+            </div>
+            <div class="adm-ter-card-actions">
+              <button class="adm-ter-action-edit" type="button" (click)="edit(terrain)">✏️ Modifier</button>
+              <button class="adm-ter-action-delete" type="button" (click)="remove(terrain.id)">🗑️ Supprimer</button>
+            </div>
+          </div>
+        } @empty {
+          <div class="adm-ter-empty md:col-span-2 lg:col-span-3">
+            <span>📍</span>
+            <p>Aucun terrain configuré</p>
+          </div>
         }
       </div>
     </section>
+
+    <style>
+      .adm-ter-header {
+        background: linear-gradient(135deg, #134e4a 0%, #0f766e 50%, #0d9488 100%);
+        padding: 1.5rem 2rem;
+        box-shadow: 0 4px 16px rgba(15,118,110,0.3);
+      }
+      .adm-ter-header-inner {
+        display: flex; align-items: center; justify-content: space-between;
+        max-width: 1200px; margin: 0 auto; gap: 1rem; flex-wrap: wrap;
+      }
+      .adm-ter-title-block { display: flex; align-items: center; gap: 1rem; }
+      .adm-ter-icon { font-size: 2.5rem; }
+      .adm-ter-title { font-size: 1.6rem; font-weight: 800; color: #fff; margin: 0; }
+      .adm-ter-sub { color: rgba(255,255,255,0.75); font-size: 0.85rem; margin: 0; }
+      .adm-ter-back-btn {
+        background: rgba(255,255,255,0.15); color: #fff; border: 2px solid rgba(255,255,255,0.35);
+        border-radius: 9999px; padding: 0.45rem 1.1rem; font-weight: 700;
+        font-size: 0.85rem; text-decoration: none; transition: background 0.15s; white-space: nowrap;
+      }
+      .adm-ter-back-btn:hover { background: rgba(255,255,255,0.25); }
+
+      .adm-ter-form-card {
+        background: #fff; border-radius: 1.25rem;
+        box-shadow: 0 4px 20px rgba(15,118,110,0.1);
+        padding: 1.5rem; border-left: 5px solid #0d9488;
+      }
+      .adm-ter-form-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; font-size: 1.5rem; }
+      .adm-ter-form-title { font-size: 1.2rem; font-weight: 700; color: #134e4a; margin: 0; }
+
+      .adm-ter-btn-primary {
+        background: linear-gradient(135deg, #0f766e, #0d9488); color: #fff; border: none;
+        border-radius: 0.6rem; padding: 0.65rem 1.5rem; font-weight: 700; cursor: pointer;
+        box-shadow: 0 3px 10px rgba(15,118,110,0.3); transition: transform 0.15s;
+      }
+      .adm-ter-btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+      .adm-ter-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      .adm-ter-btn-secondary {
+        background: #f0fdfa; color: #0f766e; border: 1.5px solid #99f6e4;
+        border-radius: 0.6rem; padding: 0.65rem 1.25rem; font-weight: 600; cursor: pointer;
+        transition: background 0.15s;
+      }
+      .adm-ter-btn-secondary:hover { background: #ccfbf1; }
+
+      .adm-ter-card {
+        background: #fff; border-radius: 1.25rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.07); overflow: hidden;
+        transition: transform 0.15s, box-shadow 0.15s;
+        border-top: 4px solid #0d9488;
+      }
+      .adm-ter-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.12); }
+      .adm-ter-card-header {
+        padding: 1rem 1.25rem 0.75rem;
+        background: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+      }
+      .adm-ter-card-num {
+        display: inline-block; font-size: 0.72rem; font-weight: 800; color: #0f766e;
+        background: #99f6e4; border-radius: 9999px; padding: 0.15rem 0.6rem; margin-bottom: 0.4rem;
+      }
+      .adm-ter-card-name { font-size: 1.05rem; font-weight: 700; color: #134e4a; }
+      .adm-ter-card-site { font-size: 0.85rem; color: #0f766e; margin-top: 0.2rem; }
+
+      .adm-ter-card-actions {
+        display: flex; gap: 0.75rem; padding: 0.75rem 1.25rem;
+        border-top: 1px solid #f0fdfa; flex-wrap: wrap;
+      }
+      .adm-ter-action-edit {
+        flex: 1; min-width: 100px; background: #eff6ff; color: #1d4ed8;
+        border: 1.5px solid #bfdbfe; border-radius: 0.5rem; padding: 0.45rem 0.75rem;
+        font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+      }
+      .adm-ter-action-edit:hover { background: #dbeafe; }
+      .adm-ter-action-delete {
+        flex: 1; min-width: 100px; background: #fef2f2; color: #dc2626;
+        border: 1.5px solid #fecaca; border-radius: 0.5rem; padding: 0.45rem 0.75rem;
+        font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+      }
+      .adm-ter-action-delete:hover { background: #fee2e2; }
+
+      .adm-ter-empty {
+        text-align: center; padding: 3rem; color: #94a3b8;
+        display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 1.1rem;
+      }
+      .adm-ter-empty span { font-size: 3rem; }
+    </style>
   `
 })
 export class AdminTerrainsPage {

@@ -37,10 +37,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     <section class="page-shell">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="title-gradient text-2xl font-semibold">Mes reservations</h1>
-          <p class="text-sm text-slate-600">Paiement et annulation de vos inscriptions.</p>
+          <h1 class="title-gradient ds-section-title">Mes reservations</h1>
+          <p class="ds-subtitle">Paiement et annulation de vos inscriptions.</p>
         </div>
-        <div class="flex gap-2">
+        <div class="toolbar-actions">
           <a mat-flat-button color="primary" routerLink="/member/matches/new" [queryParams]="{ type: 'PUBLIC' }">Creer un match PUBLIC</a>
           <a mat-flat-button color="accent" routerLink="/member/matches/new" [queryParams]="{ type: 'PRIVE' }">Creer un match PRIVE</a>
           <a mat-stroked-button routerLink="/member/matches">Matchs publics</a>
@@ -107,8 +107,7 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
             <div class="md:col-span-3 rounded-lg border border-slate-200 bg-white p-4">
               <p class="mb-3 text-sm font-semibold text-slate-800">
                 ✏️ Modifier le match #{{ selectedManagedMatch()!.id }}
-                <span class="ml-2 rounded-full px-2 py-0.5 text-xs font-bold"
-                      [class]="selectedManagedMatch()!.typeMatch === 'PRIVE' ? 'bg-violet-100 text-violet-800' : 'bg-emerald-100 text-emerald-800'">
+                <span class="ml-2 ds-badge" [class]="typeBadgeClass(selectedManagedMatch()!.typeMatch)">
                   {{ selectedManagedMatch()!.typeMatch }}
                 </span>
               </p>
@@ -162,7 +161,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
                   <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 flex items-center justify-between">
                     <div>
                       <p class="font-medium text-slate-800">{{ res.membreNom }}</p>
-                      <p class="text-xs text-slate-500">Réservation: {{ res.statut }} · Paiement: {{ res.paiement?.statut || 'N/A' }}</p>
+                      <p class="mt-1 flex flex-wrap gap-1 text-xs">
+                        <span class="ds-badge" [class]="reservationBadgeClass(res.statut)">Réservation: {{ res.statut }}</span>
+                        <span class="ds-badge" [class]="paymentBadgeClass(res.paiement?.statut)">Paiement: {{ res.paiement?.statut || 'N/A' }}</span>
+                      </p>
                     </div>
                     @if (selectedManagedMatch()?.typeMatch === 'PRIVE') {
                       <button
@@ -192,20 +194,12 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
               <mat-card-title>📋 Réservation #{{ reservation.id }}</mat-card-title>
               <mat-card-subtitle>{{ reservation.matchDateTime }}</mat-card-subtitle>
             </mat-card-header>
-            <mat-card-content class="space-y-2">
-              <p><strong>Joueur :</strong> {{ reservation.membreNom }}</p>
-              <p><strong>Match :</strong> #{{ reservation.matchId }}</p>
-              <mat-chip-set>
-                <mat-chip [highlighted]="true"
-                          [color]="reservation.statut === 'CONFIRMEE' ? 'primary' : reservation.statut === 'ANNULEE' ? 'warn' : 'accent'">
-                  Réservation : {{ reservation.statut }}
-                </mat-chip>
-                <mat-chip [highlighted]="true"
-                          [color]="reservation.paiement?.statut === 'PAYE' ? 'primary' : reservation.paiement?.statut === 'REMBOURSE' ? 'accent' : 'warn'">
-                  Paiement : {{ reservation.paiement?.statut || 'N/A' }}
-                </mat-chip>
-              </mat-chip-set>
-              <p><strong>Montant :</strong> {{ reservation.paiement?.montant ?? 0 }} €</p>
+            <mat-card-content class="ds-data-list">
+              <div class="ds-data-row"><span class="ds-data-key">Joueur</span><span class="ds-data-value">{{ reservation.membreNom }}</span></div>
+              <div class="ds-data-row"><span class="ds-data-key">Match</span><span class="ds-data-value">#{{ reservation.matchId }}</span></div>
+              <div class="ds-data-row"><span class="ds-data-key">Réservation</span><span class="ds-data-value"><span class="ds-badge" [class]="reservationBadgeClass(reservation.statut)">{{ reservation.statut }}</span></span></div>
+              <div class="ds-data-row"><span class="ds-data-key">Paiement</span><span class="ds-data-value"><span class="ds-badge" [class]="paymentBadgeClass(reservation.paiement?.statut)">{{ reservation.paiement?.statut || 'N/A' }}</span></span></div>
+              <div class="ds-data-row"><span class="ds-data-key">Montant</span><span class="ds-data-value">{{ reservation.paiement?.montant ?? 0 }} €</span></div>
             </mat-card-content>
             <mat-card-actions>
               <button
@@ -556,6 +550,33 @@ export class MemberReservationsPage {
         this.errorMessage.set(extractApiErrorMessage(error, 'Annulation impossible.'));
       }
     });
+  }
+
+  typeBadgeClass(type: MatchResponse['typeMatch']): string {
+    return type === 'PRIVE' ? 'ds-badge-info' : 'ds-badge-success';
+  }
+
+  reservationBadgeClass(statut: ReservationResponse['statut']): string {
+    if (statut === 'CONFIRMEE') {
+      return 'ds-badge-success';
+    }
+    if (statut === 'EN_ATTENTE') {
+      return 'ds-badge-warning';
+    }
+    return 'ds-badge-danger';
+  }
+
+  paymentBadgeClass(statut: string | undefined): string {
+    if (statut === 'PAYE') {
+      return 'ds-badge-success';
+    }
+    if (statut === 'EN_ATTENTE') {
+      return 'ds-badge-warning';
+    }
+    if (statut === 'REMBOURSE') {
+      return 'ds-badge-info';
+    }
+    return 'ds-badge-neutral';
   }
 }
 

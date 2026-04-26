@@ -35,10 +35,10 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
     <section class="page-shell">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="title-gradient text-2xl font-semibold">Matchs publics</h1>
-          <p class="text-sm text-slate-600">Rejoins un match public disponible. Premier paye = premier servi.</p>
+          <h1 class="title-gradient ds-section-title">Matchs publics</h1>
+          <p class="ds-subtitle">Rejoins un match public disponible. Premier paye = premier servi.</p>
         </div>
-        <div class="flex gap-2">
+        <div class="toolbar-actions">
           <a mat-stroked-button routerLink="/member/profile">Mon profil</a>
           <a mat-flat-button color="primary" routerLink="/member/matches/new">Creer un match</a>
         </div>
@@ -100,26 +100,26 @@ import { extractApiErrorMessage } from '../../../shared/utils/api-error.util';
               <mat-card-title>
                 {{ match.terrainNom }} - {{ match.siteNom }}
                 @if (isOrganizer(match)) {
-                  <span class="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">Mon match</span>
+                  <span class="ml-2 ds-badge ds-badge-info">Mon match</span>
                 }
                 @if (!isOrganizer(match) && match.nbJoueursActuels >= 4) {
-                  <span class="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">Complet</span>
+                  <span class="ml-2 ds-badge ds-badge-danger">Complet</span>
                 } @else if (!isOrganizer(match) && !canJoin(match)) {
-                  <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Non rejoignable</span>
+                  <span class="ml-2 ds-badge ds-badge-warning">Non rejoignable</span>
                 } @else if (!isOrganizer(match)) {
-                  <span class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Disponible</span>
+                  <span class="ml-2 ds-badge ds-badge-success">Disponible</span>
                 }
               </mat-card-title>
               <mat-card-subtitle>
                 {{ match.date }} · {{ match.heureDebut }} - {{ match.heureFin }}
               </mat-card-subtitle>
             </mat-card-header>
-            <mat-card-content class="space-y-2">
-              <p><strong>Organisateur:</strong> {{ match.organisateurNom }}</p>
-              <p><strong>Statut:</strong> {{ match.statut }}</p>
-              <p><strong>Type:</strong> {{ match.typeMatch }}</p>
-              <p><strong>Joueurs:</strong> {{ match.nbJoueursActuels }}/4</p>
-              <p><strong>Prix par joueur:</strong> {{ match.prixParJoueur }} EUR</p>
+            <mat-card-content class="ds-data-list">
+              <div class="ds-data-row"><span class="ds-data-key">Organisateur</span><span class="ds-data-value">{{ match.organisateurNom }}</span></div>
+              <div class="ds-data-row"><span class="ds-data-key">Statut</span><span class="ds-data-value"><span class="ds-badge" [class]="statusBadgeClass(match.statut)">{{ match.statut }}</span></span></div>
+              <div class="ds-data-row"><span class="ds-data-key">Type</span><span class="ds-data-value"><span class="ds-badge" [class]="typeBadgeClass(match.typeMatch)">{{ match.typeMatch }}</span></span></div>
+              <div class="ds-data-row"><span class="ds-data-key">Joueurs</span><span class="ds-data-value">{{ match.nbJoueursActuels }}/4</span></div>
+              <div class="ds-data-row"><span class="ds-data-key">Prix par joueur</span><span class="ds-data-value">{{ match.prixParJoueur }} EUR</span></div>
             </mat-card-content>
             <mat-card-actions>
               <button
@@ -303,6 +303,20 @@ export class MemberPublicMatchesPage {
 
   canModify(match: MatchResponse): boolean {
     return this.isOrganizer(match) && this.startsInMoreThan24Hours(match);
+  }
+
+  statusBadgeClass(statut: MatchResponse['statut']): string {
+    if (statut === 'PLANIFIE') {
+      return 'ds-badge-success';
+    }
+    if (statut === 'COMPLET') {
+      return 'ds-badge-warning';
+    }
+    return 'ds-badge-danger';
+  }
+
+  typeBadgeClass(type: MatchResponse['typeMatch']): string {
+    return type === 'PRIVE' ? 'ds-badge-info' : 'ds-badge-neutral';
   }
 
   startEdit(match: MatchResponse): void {
